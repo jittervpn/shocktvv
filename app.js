@@ -12,9 +12,8 @@ const TMDB = 'https://api.themoviedb.org/3';
 // "reproducción directa". Probamos este último a ver si evita la pantalla
 // de selección de servidor — no hay garantía, pero es un endpoint real
 // documentado por ellos, no un parámetro inventado.
-const LATINO_API = 'https://audio-latino-forge.lovable.app';
-const UNL_MOV = id       => `${LATINO_API}/embed/movie/${id}`;
-const UNL_TV  = (id,s,e) => `${LATINO_API}/embed/tv/${id}/${s}/${e}`;
+const UNL_MOV = id       => `https://unlimplay.com/f/embed/movie/${id}`;
+const UNL_TV  = (id,s,e) => `https://unlimplay.com/f/embed/tv/${id}/${s}/${e}`;
 
 const $ = id => document.getElementById(id);
 const show = id => $(id)?.classList.remove('hidden');
@@ -668,12 +667,10 @@ let plyLastUrl='';
 // Sin "allow-popups": esto es justo lo que evita que el botón "saltar
 // anuncio" de Unlimplay/AnimeAV1 abra pestañas nuevas con publicidad.
 // El reproductor de video no necesita abrir ventanas para funcionar.
-// Nota: allow-popups vuelve a estar habilitado. Lo habíamos sacado para
-// bloquear los popups de anuncios de Unlimplay, pero algunos servidores
-// de video (sobre todo los "latino") necesitan este permiso para poder
-// mostrar el contenido — sin él, quedaba todo en blanco. Es un
-// trade-off: puede volver a aparecer algún popup de anuncio ocasional,
-// pero es preferible a que el video no cargue directamente.
+// allow-popups habilitado: algunos servidores de video necesitan este
+// permiso para poder mostrar el contenido — sin él, la pantalla queda
+// en blanco en vez de reproducir. Es un trade-off: puede aparecer algún
+// popup de anuncio ocasional, pero es preferible a que no cargue nada.
 const PLY_SANDBOX='allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-pointer-lock allow-fullscreen';
 function setPlyFrame(url){
   const f=$('ply-frame'); if(!f) return;
