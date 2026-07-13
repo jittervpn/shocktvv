@@ -1172,11 +1172,15 @@ async function getAnimeFLVServers(id, episode) {
 
   const normalizeEntry = (entry) => {
     if (!entry) return null;
-    const rawUrl = entry.url || entry.code || '';
-    if (!rawUrl) return null;
-    const url = /^https?:\/\//i.test(rawUrl) ? rawUrl : null; // si no viene ya como URL completa, no la inventamos
-    if (!url) return null;
-    return { server: entry.server || entry.title || 'AnimeFLV', url, quality: entry.quality || null };
+    // "code" es el link de embed (lo que sirve para reproducir); "url" es
+    // el link de descarga (otra cosa, no sirve para el iframe). A veces
+    // mega.nz viene con un formato que hay que ajustar para poder embeberlo.
+    let embedUrl = entry.code || entry.url || '';
+    if (typeof embedUrl === 'string') {
+      embedUrl = embedUrl.replace('mega.nz/embed#!', 'mega.nz/embed/');
+    }
+    if (!embedUrl || !/^https?:\/\//i.test(embedUrl)) return null;
+    return { server: entry.title || entry.server || 'AnimeFLV', url: embedUrl, quality: entry.quality || null };
   };
   const mapList = (arr) => (Array.isArray(arr) ? arr.map(normalizeEntry).filter(Boolean) : []);
 
