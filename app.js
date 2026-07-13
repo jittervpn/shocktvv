@@ -426,7 +426,7 @@ function renderHero(item, type){
   $('hero-title').textContent = item.title||item.name||'';
   $('hero-desc').textContent = item.overview||'';
   $('hero-meta').innerHTML = `<span class="star">★ ${(item.vote_average||0).toFixed(1)}</span><span>${(item.release_date||item.first_air_date||'').slice(0,4)}</span>`;
-  $('hero-play').onclick=()=>openPlayer(type,item.id,item.title||item.name);
+  $('hero-play').onclick=()=>openPlayer(type,item.id,item.title||item.name,false,'',item.poster_path||'');
   $('hero-info').onclick=()=>openDetail(type,item.id);
 }
 function startHero(){
@@ -537,7 +537,7 @@ async function openDetail(type, id){
     $('mod-meta').innerHTML = `<span class="star">★ ${(det.vote_average||0).toFixed(1)}</span><span>${(det.release_date||det.first_air_date||'').slice(0,4)}</span><span>${type==='movie'?'Película':'Serie'}</span>`;
     const faved = isFav(type,id);
     $('mod-acts').innerHTML = `
-      <button class="watch-btn" onclick="closeMod();openPlayer('${type}',${id},'${title.replace(/'/g,"\\'")}',false,'${(det.original_title||det.original_name||'').replace(/'/g,"\\'")}')">▶ Ver ahora</button>
+      <button class="watch-btn" onclick="closeMod();openPlayer('${type}',${id},'${title.replace(/'/g,"\\'")}',false,'${(det.original_title||det.original_name||'').replace(/'/g,"\\'")}','${(det.poster_path||'').replace(/'/g,"\\'")}')">▶ Ver ahora</button>
       <button class="fav-btn${faved?' on':''}" id="fav-btn-mod" data-k="${fk(type,id)}" onclick="toggleFav('${type}',${id},'${title.replace(/'/g,"\\'")}','${det.poster_path||''}',${det.vote_average||0})" title="Favoritos" aria-label="Favoritos">${faved?'❤️':'🤍'}</button>`;
     show('mod-ov');
   }catch(e){ toast('Error al cargar: '+e.message); }
@@ -667,11 +667,11 @@ let plyLastUrl='';
 // Sin "allow-popups": esto es justo lo que evita que el botón "saltar
 // anuncio" de Unlimplay/AnimeAV1 abra pestañas nuevas con publicidad.
 // El reproductor de video no necesita abrir ventanas para funcionar.
-// allow-popups habilitado: algunos servidores de video necesitan este
-// permiso para poder mostrar el contenido — sin él, la pantalla queda
-// en blanco en vez de reproducir. Es un trade-off: puede aparecer algún
-// popup de anuncio ocasional, pero es preferible a que no cargue nada.
-const PLY_SANDBOX='allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-pointer-lock allow-fullscreen';
+// Sin allow-popups: esto bloquea las pestañas de publicidad del botón
+// "saltar anuncio" de Unlimplay. El video se sigue viendo bien sin este
+// permiso — solo hacía falta mientras había una fuente rota metida
+// (ya la sacamos).
+const PLY_SANDBOX='allow-scripts allow-same-origin allow-forms allow-presentation allow-pointer-lock allow-fullscreen';
 function setPlyFrame(url){
   const f=$('ply-frame'); if(!f) return;
   f.setAttribute('sandbox', PLY_SANDBOX);
