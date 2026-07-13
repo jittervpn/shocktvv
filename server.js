@@ -1118,6 +1118,119 @@ const av1 = {
   getCatalog,
 };
 
+// ══════════════════════════════════════════════
+//  ANIMEFLV — fuente adicional, junto a AnimeAV1. Portado del proyecto
+//  open source animeflv-api (Python, MIT) de jorgeajimenezl/JimScope
+//  (https://github.com/jorgeajimenezl/animeflv-api) a JS/axios+cheerio,
+//  siguiendo el mismo patrón que ya usamos para AnimeAV1: solo extrae
+//  la lista de servidores de video (embeds a terceros), nunca el
+//  archivo real.
+//  Aviso: animeflv.net puede tener protección Cloudflare que la
+//  versión Python esquiva con "cloudscraper" — acá usamos axios plano,
+//  así que si Cloudflare bloquea, hay que revisar esto puntual.
+// ══════════════════════════════════════════════
+const FLV_BASE = 'https://www3.animeflv.net';
+const FLV_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+};
+async function fetchHtmlFLV(url) {
+  const r = await axios.get(url, { headers: FLV_HEADERS, timeout: 15000, validateStatus: () => true });
+  if (r.status < 200 || r.status >= 400 || !r.data) {
+    throw new Error(`No se pudo obtener contenido desde AnimeFLV (status ${r.status})`);
+  }
+  return typeof r.data === 'string' ? r.data : String(r.data);
+}
+
+async function searchAnimeFLV(query) {
+  const url = `${FLV_BASE}/browse?q=${encodeURIComponent(query)}`;
+  const html = await fetchHtmlFLV(url);
+  const $ = cheerio.load(html);
+  const results = [];
+  $('div.Container ul.ListAnimes li article').each((i, el) => {
+    const $el = $(el);
+    const href = $el.find('div.Description a.Button').attr('href') || '';
+    const id = href.replace(/^\/?(anime\/)?/, '').trim();
+    const title = $el.find('a h3').text().trim();
+    const img = $el.find('a div.Image figure img');
+    let poster = img.attr('src') || img.attr('data-cfsrc') || '';
+    if (poster && !/^https?:\/\//i.test(poster)) poster = FLV_BASE + (poster.startsWith('/') ? '' : '/') + poster;
+    const type = $el.find('div.Description p span.Type').text().trim();
+    if (id && title) results.push({ id, title, poster, type });
+  });
+  return results;
+}
+
+async function getAnimeFLVServers(id, episode) {
+  const url = `${FLV_BASE}/ver/${id}-${episode}`;
+  const html = await fetchHtmlFLV(url);
+  const m = html.match(/var\s+videos\s*=\s*(\{[\s\S]*?\});/);
+  if (!m) return { SUB: [], LAT: [] };
+  let data;
+  try { data = JSON.parse(m[1]); } catch (e) { return { SUB: [], LAT: [] }; }
+
+  const normalizeEntry = (entry) => {
+    if (!entry) return null;
+    const rawUrl = entry.url || entry.code || '';
+    if (!rawUrl) return null;
+    const url = /^https?:\/\//i.test(rawUrl) ? rawUrl : null; // si no viene ya como URL completa, no la inventamos
+    if (!url) return null;
+    return { server: entry.server || entry.title || 'AnimeFLV', url, quality: entry.quality || null };
+  };
+  const mapList = (arr) => (Array.isArray(arr) ? arr.map(normalizeEntry).filter(Boolean) : []);
+
+  return { SUB: mapList(data.SUB), LAT: mapList(data.LAT) };
+}
+
+// Diagnóstico público — https://TU-BACKEND.up.railway.app/api/animeflv/debug?q=naruto
+app.get('/api/animeflv/debug', asyncH(async (req, res) => {
+  const q = req.query.q || 'naruto';
+  const report = { query: q };
+  try {
+    const t0 = Date.now();
+    const results = await searchAnimeFLV(q);
+    report.busquedaOk = true;
+    report.tiempoMs = Date.now() - t0;
+    report.cantidadResultados = results.length;
+    report.primerResultado = results[0] || null;
+    if (results[0]) {
+      try {
+        const servers = await getAnimeFLVServers(results[0].id, 1);
+        report.servidoresEp1 = servers;
+      } catch (e) {
+        report.errorServidores = e.message;
+      }
+    }
+  } catch (e) {
+    report.busquedaOk = false;
+    report.errorBusqueda = e.message;
+  }
+  res.json(report);
+}));
+
+app.get('/api/animeflv/search', authAnime, asyncH(async (req, res) => {
+  const { q } = req.query;
+  if (!q) return res.status(400).json({ success: false, message: 'Falta parámetro q' });
+  try {
+    const results = await searchAnimeFLV(q);
+    res.json({ success: true, data: { results } });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+}));
+
+app.get('/api/animeflv/episode', authAnime, asyncH(async (req, res) => {
+  const { id, number } = req.query;
+  if (!id || !number) return res.status(400).json({ success: false, message: 'Faltan parámetros id y number' });
+  try {
+    const servers = await getAnimeFLVServers(id, Number(number));
+    res.json({ success: true, data: { servers: { sub: servers.SUB, dub: servers.LAT } } });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+}));
+
 const ANIME_DOMAIN = process.env.DEFAULT_ANIME_DOMAIN || 'animeav1.com';
 const mediaUrl   = slug => `https://${ANIME_DOMAIN}/media/${slug}`;
 const episodeUrl = (slug, n) => `https://${ANIME_DOMAIN}/media/${slug}/${n}`;
