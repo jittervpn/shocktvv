@@ -1165,10 +1165,14 @@ async function searchAnimeFLV(query) {
 async function getAnimeFLVServers(id, episode) {
   const url = `${FLV_BASE}/ver/${id}-${episode}`;
   const html = await fetchHtmlFLV(url);
-  const m = html.match(/var\s+videos\s*=\s*(\{[\s\S]*?\});/);
-  if (!m) return { SUB: [], LAT: [] };
+  const marker = html.indexOf('var videos');
+  if (marker === -1) return { SUB: [], LAT: [] };
+  const braceStart = html.indexOf('{', marker);
+  if (braceStart === -1) return { SUB: [], LAT: [] };
+  const literal = extractBalancedSection(html, braceStart, '{', '}');
+  if (!literal) return { SUB: [], LAT: [] };
   let data;
-  try { data = JSON.parse(m[1]); } catch (e) { return { SUB: [], LAT: [] }; }
+  try { data = JSON.parse(literal); } catch (e) { return { SUB: [], LAT: [] }; }
 
   const normalizeEntry = (entry) => {
     if (!entry) return null;
