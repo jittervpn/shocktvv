@@ -1213,6 +1213,32 @@ async function getAnimeFLVServers(id, episode) {
 }
 
 // Diagnóstico público — https://TU-BACKEND.up.railway.app/api/animeflv/debug?q=naruto
+async function getAnimeFLVServersDebug(id, episode) {
+  const url = `${FLV_BASE}/ver/${id}-${episode}`;
+  const browser = await getFlvBrowser();
+  const page = await browser.newPage();
+  const consoleErrors = [];
+  page.on('pageerror', e => consoleErrors.push(String(e)));
+  page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+  try {
+    await page.setUserAgent(FLV_HEADERS['User-Agent']);
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+    await page.waitForFunction(
+      () => window.videos && !Array.isArray(window.videos) && (window.videos.SUB || window.videos.LAT),
+      { timeout: 12000 }
+    ).catch(() => {});
+    const state = await page.evaluate(() => ({
+      videosRaw: window.videos,
+      loadingAdsDefined: typeof window.loadingAds !== 'undefined',
+      fbcombHtml: document.getElementById('fbcomb') ? document.getElementById('fbcomb').innerHTML.slice(0, 300) : null,
+      bodyTextSnippet: document.body ? document.body.innerText.slice(0, 400) : null,
+    }));
+    return { ...state, consoleErrors: consoleErrors.slice(0, 10) };
+  } finally {
+    await page.close().catch(() => {});
+  }
+}
+
 app.get('/api/animeflv/debug', asyncH(async (req, res) => {
   const q = req.query.q || 'naruto';
   const report = { query: q };
@@ -1234,6 +1260,11 @@ app.get('/api/animeflv/debug', asyncH(async (req, res) => {
           : 'OK, encontró servidores.';
       } catch (e) {
         report.errorServidores = e.message;
+      }
+      try {
+        report.diagnosticoPagina = await getAnimeFLVServersDebug(results[0].id, 1);
+      } catch (e) {
+        report.errorDiagnosticoPagina = e.message;
       }
     }
   } catch (e) {
