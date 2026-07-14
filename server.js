@@ -1205,6 +1205,22 @@ app.get('/api/animeflv/debug', asyncH(async (req, res) => {
       } catch (e) {
         report.errorServidores = e.message;
       }
+      // Diagnóstico extra: traemos el HTML crudo de la página del episodio
+      // para ver si realmente llegamos al contenido real o si algo (ej.
+      // Cloudflare) nos está devolviendo otra cosa.
+      try {
+        const epUrl = `${FLV_BASE}/ver/${results[0].id}-1`;
+        const rawHtml = await fetchHtmlFLV(epUrl);
+        report.diagnosticoHtml = {
+          url: epUrl,
+          largoHtml: rawHtml.length,
+          contieneVarVideos: rawHtml.includes('var videos'),
+          pareceCloudflare: /just a moment|cf-browser-verification|cloudflare/i.test(rawHtml),
+          primeros500Caracteres: rawHtml.slice(0, 500),
+        };
+      } catch (e) {
+        report.errorDiagnosticoHtml = e.message;
+      }
     }
   } catch (e) {
     report.busquedaOk = false;
