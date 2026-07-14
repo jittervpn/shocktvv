@@ -1215,12 +1215,26 @@ app.get('/api/animeflv/debug', asyncH(async (req, res) => {
       try {
         const epUrl = `${FLV_BASE}/ver/${results[0].id}-1`;
         const rawHtml = await fetchHtmlFLV(epUrl);
+        const marker = rawHtml.indexOf('var videos');
+        const braceStart = marker !== -1 ? rawHtml.indexOf('{', marker) : -1;
+        const literal = braceStart !== -1 ? extractBalancedSection(rawHtml, braceStart, '{', '}') : null;
+        let parseError = null, parsedKeys = null;
+        if (literal) {
+          try { parsedKeys = Object.keys(JSON.parse(literal)); }
+          catch (e) { parseError = e.message; }
+        }
         report.diagnosticoHtml = {
           url: epUrl,
           largoHtml: rawHtml.length,
           contieneVarVideos: rawHtml.includes('var videos'),
           pareceCloudflare: /just a moment|cf-browser-verification|cloudflare/i.test(rawHtml),
           primeros500Caracteres: rawHtml.slice(0, 500),
+          textoAlrededorDeVarVideos: marker !== -1 ? rawHtml.slice(marker, marker + 300) : null,
+          literalExtraidoLargo: literal ? literal.length : null,
+          literalExtraidoInicio: literal ? literal.slice(0, 300) : null,
+          literalExtraidoFinal: literal ? literal.slice(-100) : null,
+          errorDeParseo: parseError,
+          clavesParseadas: parsedKeys,
         };
       } catch (e) {
         report.errorDiagnosticoHtml = e.message;
