@@ -1162,33 +1162,54 @@ async function searchAnimeFLV(query) {
   return results;
 }
 
+// AnimeFLV carga los servidores de video con JavaScript recién después
+// de que la página termina de cargar (var videos = [] al principio,
+// se completa después con initEpisode()). Un scraper simple (solo HTML)
+// nunca ve ese contenido — hace falta un navegador real que ejecute el
+// JS, por eso usamos Puppeteer acá (a diferencia de AnimeAV1, que sí
+// tiene todo embebido de entrada en el HTML).
+const puppeteer = require('puppeteer');
+let flvBrowserPromise = null;
+async function getFlvBrowser() {
+  if (!flvBrowserPromise) {
+    flvBrowserPromise = puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+    }).catch(e => { flvBrowserPromise = null; throw e; });
+  }
+  return flvBrowserPromise;
+}
+
 async function getAnimeFLVServers(id, episode) {
   const url = `${FLV_BASE}/ver/${id}-${episode}`;
-  const html = await fetchHtmlFLV(url);
-  const marker = html.indexOf('var videos');
-  if (marker === -1) return { SUB: [], LAT: [] };
-  const braceStart = html.indexOf('{', marker);
-  if (braceStart === -1) return { SUB: [], LAT: [] };
-  const literal = extractBalancedSection(html, braceStart, '{', '}');
-  if (!literal) return { SUB: [], LAT: [] };
-  let data;
-  try { data = JSON.parse(literal); } catch (e) { return { SUB: [], LAT: [] }; }
+  const browser = await getFlvBrowser();
+  const page = await browser.newPage();
+  try {
+    await page.setUserAgent(FLV_HEADERS['User-Agent']);
+    await page.setExtraHTTPHeaders({ 'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8' });
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+    // Esperamos a que window.videos deje de ser el array vacío inicial y
+    // pase a tener SUB/LAT reales. Si no llega a tiempo, seguimos con lo
+    // que haya (puede quedar vacío, pero no colgamos el pedido).
+    await page.waitForFunction(
+      () => window.videos && !Array.isArray(window.videos) && (window.videos.SUB || window.videos.LAT),
+      { timeout: 12000 }
+    ).catch(() => {});
+    const data = await page.evaluate(() => window.videos || null);
+    if (!data || Array.isArray(data)) return { SUB: [], LAT: [] };
 
-  const normalizeEntry = (entry) => {
-    if (!entry) return null;
-    // "code" es el link de embed (lo que sirve para reproducir); "url" es
-    // el link de descarga (otra cosa, no sirve para el iframe). A veces
-    // mega.nz viene con un formato que hay que ajustar para poder embeberlo.
-    let embedUrl = entry.code || entry.url || '';
-    if (typeof embedUrl === 'string') {
-      embedUrl = embedUrl.replace('mega.nz/embed#!', 'mega.nz/embed/');
-    }
-    if (!embedUrl || !/^https?:\/\//i.test(embedUrl)) return null;
-    return { server: entry.title || entry.server || 'AnimeFLV', url: embedUrl, quality: entry.quality || null };
-  };
-  const mapList = (arr) => (Array.isArray(arr) ? arr.map(normalizeEntry).filter(Boolean) : []);
-
-  return { SUB: mapList(data.SUB), LAT: mapList(data.LAT) };
+    const normalizeEntry = (entry) => {
+      if (!entry) return null;
+      let embedUrl = entry.code || entry.url || '';
+      if (typeof embedUrl === 'string') embedUrl = embedUrl.replace('mega.nz/embed#!', 'mega.nz/embed/');
+      if (!embedUrl || !/^https?:\/\//i.test(embedUrl)) return null;
+      return { server: entry.title || entry.server || 'AnimeFLV', url: embedUrl, quality: entry.quality || null };
+    };
+    const mapList = (arr) => (Array.isArray(arr) ? arr.map(normalizeEntry).filter(Boolean) : []);
+    return { SUB: mapList(data.SUB), LAT: mapList(data.LAT) };
+  } finally {
+    await page.close().catch(() => {});
+  }
 }
 
 // Diagnóstico público — https://TU-BACKEND.up.railway.app/api/animeflv/debug?q=naruto
@@ -1199,45 +1220,20 @@ app.get('/api/animeflv/debug', asyncH(async (req, res) => {
     const t0 = Date.now();
     const results = await searchAnimeFLV(q);
     report.busquedaOk = true;
-    report.tiempoMs = Date.now() - t0;
+    report.tiempoMsBusqueda = Date.now() - t0;
     report.cantidadResultados = results.length;
     report.primerResultado = results[0] || null;
     if (results[0]) {
       try {
+        const t1 = Date.now();
         const servers = await getAnimeFLVServers(results[0].id, 1);
         report.servidoresEp1 = servers;
+        report.tiempoMsPuppeteer = Date.now() - t1;
+        report.nota = (servers.SUB.length === 0 && servers.LAT.length === 0)
+          ? 'Sin servidores: puede ser que la espera (12s) no haya alcanzado, o que este episodio puntual no tenga video cargado.'
+          : 'OK, encontró servidores.';
       } catch (e) {
         report.errorServidores = e.message;
-      }
-      // Diagnóstico extra: traemos el HTML crudo de la página del episodio
-      // para ver si realmente llegamos al contenido real o si algo (ej.
-      // Cloudflare) nos está devolviendo otra cosa.
-      try {
-        const epUrl = `${FLV_BASE}/ver/${results[0].id}-1`;
-        const rawHtml = await fetchHtmlFLV(epUrl);
-        const marker = rawHtml.indexOf('var videos');
-        const braceStart = marker !== -1 ? rawHtml.indexOf('{', marker) : -1;
-        const literal = braceStart !== -1 ? extractBalancedSection(rawHtml, braceStart, '{', '}') : null;
-        let parseError = null, parsedKeys = null;
-        if (literal) {
-          try { parsedKeys = Object.keys(JSON.parse(literal)); }
-          catch (e) { parseError = e.message; }
-        }
-        report.diagnosticoHtml = {
-          url: epUrl,
-          largoHtml: rawHtml.length,
-          contieneVarVideos: rawHtml.includes('var videos'),
-          pareceCloudflare: /just a moment|cf-browser-verification|cloudflare/i.test(rawHtml),
-          primeros500Caracteres: rawHtml.slice(0, 500),
-          textoAlrededorDeVarVideos: marker !== -1 ? rawHtml.slice(marker, marker + 300) : null,
-          literalExtraidoLargo: literal ? literal.length : null,
-          literalExtraidoInicio: literal ? literal.slice(0, 300) : null,
-          literalExtraidoFinal: literal ? literal.slice(-100) : null,
-          errorDeParseo: parseError,
-          clavesParseadas: parsedKeys,
-        };
-      } catch (e) {
-        report.errorDiagnosticoHtml = e.message;
       }
     }
   } catch (e) {
