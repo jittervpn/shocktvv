@@ -61,16 +61,6 @@ async function animeAPI(endpoint, params={}){
   }
   return r.json();
 }
-async function animeFlvAPI(endpoint, params={}){
-  const qs = new URLSearchParams(params).toString();
-  const r = await fetchRetry(`${API_BASE}/api/animeflv/${endpoint}?${qs}`, {headers:{'x-api-key':ANIME_KEY, accept:'application/json'}});
-  if(!r.ok){
-    let msg = `AnimeFLV API ${r.status}`;
-    try{ const j = await r.json(); if(j?.message) msg += ` — ${j.message}`; } catch(e){}
-    throw new Error(msg);
-  }
-  return r.json();
-}
 async function jikanTitles(q){
   try{
     const r = await fetchRetry(`${API_BASE}/api/jikan/titles?${new URLSearchParams({q})}`, {headers:{'x-api-key':ANIME_KEY, accept:'application/json'}});
@@ -632,7 +622,7 @@ async function openPlayer(type, id, title, isAnime=false, origTitle='', poster='
 // necesita un ID de TMDB que el anime ya no tiene en esta app.
 async function openAnimePlayer(subtype, malId, title, origTitle, poster){
   hide('mod-ov'); show('loader-ov');
-  pl = {type:subtype, id:malId, title, s:1, ep:1, anime:true, total:0, animeSlug:'', animeFlvId:'', servers:[], srcIdx:0, animeEpisodes:[], poster:poster||''};
+  pl = {type:subtype, id:malId, title, s:1, ep:1, anime:true, total:0, animeSlug:'', servers:[], srcIdx:0, animeEpisodes:[], poster:poster||''};
   startWatchingPing('anime', malId, title);
   $('ply-title').textContent = title;
   updPlyBadge();
@@ -780,19 +770,6 @@ function playEp(ep){
 // ── AnimeAV1 (streaming) — usado tanto por el flujo de anime como fuente
 //    de "otra fuente" para películas/series regulares no aplica más acá ──
 async function findAnimeOnly(titleEs, titleEn){
-  // AnimeFLV se busca en paralelo, como fuente adicional (no bloquea a AnimeAV1
-  // si tarda o falla — simplemente no aporta servidores extra en ese caso).
-  const flvPromise = (async () => {
-    try{
-      for(const q of [titleEs, titleEn]){
-        if(!q) continue;
-        const r = await animeFlvAPI('search', {q});
-        const results = r?.data?.results || [];
-        if(results.length){ pl.animeFlvId = results[0].id; return; }
-      }
-    }catch(e){ console.warn('[AnimeFLV] Error buscando:', e.message); }
-  })();
-
   try{
     let results=[];
     for(const q of [titleEs, titleEn]){
@@ -809,20 +786,17 @@ async function findAnimeOnly(titleEs, titleEn){
         if(results.length) break;
       }
     }
-    await flvPromise; // esperamos acá para no pisar pl con otra búsqueda mientras tanto
-    if(!results.length && !pl.animeFlvId){
-      toast('No se encontró en AnimeAV1 ni en AnimeFLV');
+    if(!results.length){
+      toast('No se encontró en AnimeAV1');
       renderAnimeEpList();
       return;
     }
-    if(results.length){
-      pl.animeSlug = results[0].slug;
-      const info = await animeAPI('info', {slug: pl.animeSlug});
-      pl.animeEpisodes = info?.data?.episodes || [];
-      pl.total = pl.animeEpisodes.length || info?.data?.episodesCount || 0;
-    }
+    pl.animeSlug = results[0].slug;
+    const info = await animeAPI('info', {slug: pl.animeSlug});
+    pl.animeEpisodes = info?.data?.episodes || [];
+    pl.total = pl.animeEpisodes.length || info?.data?.episodesCount || 0;
     if(pl.type==='movie' && pl.total>0) await loadAnimeEp(1);
-    if(pl.total>0 || pl.animeFlvId) toast('✅ Encontrado' + (pl.animeSlug&&pl.animeFlvId?' en AnimeAV1 y AnimeFLV':pl.animeSlug?' en AnimeAV1':' en AnimeFLV'));
+    if(pl.total>0) toast('✅ Encontrado en AnimeAV1');
     renderAnimeEpList();
   }catch(e){
     console.warn('[AnimeAV1] Error buscando:', e.message);
@@ -831,29 +805,19 @@ async function findAnimeOnly(titleEs, titleEn){
   }
 }
 async function loadAnimeEp(epNum){
-  if(!pl.animeSlug && !pl.animeFlvId) return false;
-  let allServers=[];
-  if(pl.animeSlug){
-    try{
-      const data = await animeAPI('episode', {slug: pl.animeSlug, number: epNum});
-      const servers = data?.data?.servers || {};
-      allServers.push(...(servers.dub||[]).map(s=>({...s,kind:'dub',source:'AnimeAV1'})));
-      allServers.push(...(servers.sub||[]).map(s=>({...s,kind:'sub',source:'AnimeAV1'})));
-    }catch(e){ console.warn('[AnimeAV1 ep] Error:', e.message); }
-  }
-  if(pl.animeFlvId){
-    try{
-      const data = await animeFlvAPI('episode', {id: pl.animeFlvId, number: epNum});
-      const servers = data?.data?.servers || {};
-      allServers.push(...(servers.dub||[]).map(s=>({...s,kind:'dub',source:'AnimeFLV'})));
-      allServers.push(...(servers.sub||[]).map(s=>({...s,kind:'sub',source:'AnimeFLV'})));
-    }catch(e){ console.warn('[AnimeFLV ep] Error:', e.message); }
-  }
-  if(!allServers.length) return false;
-  pl.servers=allServers; pl.srcIdx=0;
-  const first=allServers[0];
-  const url=first.url||first.link||first.embed||first.embedUrl||first.src||'';
-  if(url){ setPlyFrame(url); hide('ply-placeholder'); return true; }
+  if(!pl.animeSlug) return false;
+  try{
+    const data = await animeAPI('episode', {slug: pl.animeSlug, number: epNum});
+    const servers = data?.data?.servers || {};
+    const subServers=(servers.sub||[]).map(s=>({...s,kind:'sub'}));
+    const dubServers=(servers.dub||[]).map(s=>({...s,kind:'dub'}));
+    const allServers=[...dubServers, ...subServers]; // preferimos latino primero
+    if(!allServers.length) return false;
+    pl.servers=allServers; pl.srcIdx=0;
+    const first=allServers[0];
+    const url=first.url||first.link||first.embed||first.embedUrl||first.src||'';
+    if(url){ setPlyFrame(url); hide('ply-placeholder'); return true; }
+  }catch(e){ console.warn('[AnimeAV1 ep] Error:', e.message); }
   return false;
 }
 function renderAnimeEpList(){
@@ -907,7 +871,7 @@ function openSrcModal(){
   const items=[];
   (pl.servers||[]).forEach((s,i)=>{
     items.push({
-      label: `${s.source?s.source+' · ':''}${s.kind==='sub'?'Sub':'Latino'} · Servidor ${i+1}`,
+      label: `${s.kind==='sub'?'Sub':'Latino'} · Servidor ${i+1}`,
       tag: s.kind==='sub'?'JAP/SUB':'LATINO',
       active: pl.srcIdx===i,
       run: ()=>{
