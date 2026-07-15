@@ -345,6 +345,13 @@ function onSearchInput(){
   if(!q){ hide('search-dropdown'); return; }
   searchTimer=setTimeout(()=>liveSearch(q), 400);
 }
+// Si un resultado de TMDB en realidad es anime (animación + idioma
+// original japonés), lo sacamos de la lista de TMDB — ya va a aparecer
+// la versión correcta (de Jikan/AnimeAV1) en animeItems. Si dejáramos
+// las dos, la de TMDB manda directo a Unlimplay en vez de buscar en
+// AnimeAV1, que es justo lo que no queremos para anime.
+const isLikelyAnimeTmdb = i => (i.genre_ids||[]).includes(16) && i.original_language==='ja';
+
 async function liveSearch(q){
   const myId=++searchReqId;
   const dd=$('search-dropdown');
@@ -355,7 +362,7 @@ async function liveSearch(q){
       kidsMode ? Promise.resolve(null) : animeAPI('find', {q}).catch(()=>null),
     ]);
     if(myId!==searchReqId) return;
-    const tmdbItems=kidsFilterItems((tmdbR.results||[]).filter(i=>i.media_type!=='person')).slice(0,6);
+    const tmdbItems=kidsFilterItems((tmdbR.results||[]).filter(i=>i.media_type!=='person' && !isLikelyAnimeTmdb(i))).slice(0,6);
     const animeItems=(animeR?.data?.results||[]).slice(0,4);
     if(!tmdbItems.length && !animeItems.length){ dd.innerHTML='<div class="sd-no-results">Sin resultados</div>'; return; }
     dd.innerHTML = tmdbItems.map(i=>`
@@ -382,7 +389,7 @@ function doSearch(){
     kidsMode ? Promise.resolve(null) : animeAPI('find', {q}).catch(()=>null),
   ]).then(([tmdbD, animeD])=>{
     if(myId!==doSearchReqId) return;
-    const tmdbItems=kidsFilterItems((tmdbD.results||[]).filter(i=>i.media_type!=='person'));
+    const tmdbItems=kidsFilterItems((tmdbD.results||[]).filter(i=>i.media_type!=='person' && !isLikelyAnimeTmdb(i)));
     const animeItems=animeD?.data?.results||[];
     const html = tmdbItems.map(i=>card(i, i.media_type||'tv')).join('') + animeItems.map(animeCard).join('');
     $('search-results').innerHTML = html || '<p style="color:var(--muted);padding:24px">Sin resultados.</p>';
