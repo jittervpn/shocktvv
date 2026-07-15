@@ -413,13 +413,13 @@ async function loadHome(){
     calls.push(animeAPI('top', {type:'movie', page:1}).catch(()=>null));
   }
   const [tm, ttv, mp, tvp, anTV, anMov] = await Promise.all(calls);
-  const heroPool = kidsFilterItems(tm.results||[]).filter(m=>m.backdrop_path);
+  const heroPool = kidsFilterItems(tm.results||[]).filter(m=>m.backdrop_path && !isLikelyAnimeTmdb(m));
   hero = heroPool.slice(0,8);
   if(hero.length){ $('hero-section').style.display=''; renderHero(hero[0],'movie'); startHero(); }
   else{ $('hero-section').style.display='none'; }
-  renderSl('s0', kidsFilterItems([...(tm.results||[]).slice(0,10), ...(ttv.results||[]).slice(0,10)]), true);
-  renderSl('s1', kidsFilterItems(mp.results||[]));
-  renderSl('s2', kidsFilterItems(ttv.results||[]), false, true);
+  renderSl('s0', kidsFilterItems([...(tm.results||[]).slice(0,10), ...(ttv.results||[]).slice(0,10)]).filter(i=>!isLikelyAnimeTmdb(i)), true);
+  renderSl('s1', kidsFilterItems(mp.results||[]).filter(i=>!isLikelyAnimeTmdb(i)));
+  renderSl('s2', kidsFilterItems(ttv.results||[]).filter(i=>!isLikelyAnimeTmdb(i)), false, true);
   if(!kidsMode){
     const s3=$('s3'), s4=$('s4');
     if(s3) s3.innerHTML = (anTV?.data?.results||[]).map(animeCard).join('') || '<p style="color:var(--muted);padding:10px">Sin contenido.</p>';
@@ -454,7 +454,7 @@ async function loadGrid(elId, type){
       ? `/discover/${type}?language=es-ES&with_genres=${type==='movie'?'16,10751':'16,10762'}&sort_by=popularity.desc`
       : `/${type}/popular?language=es-ES`;
     const [p1,p2] = await Promise.all([api(`${base}&page=1`), api(`${base}&page=2`)]);
-    const items = kidsFilterItems([...(p1.results||[]),...(p2.results||[])]); // filtro extra de seguridad
+    const items = kidsFilterItems([...(p1.results||[]),...(p2.results||[])]).filter(i=>!isLikelyAnimeTmdb(i)); // filtro extra de seguridad
     el.innerHTML=items.map(i=>card(i,type)).join('') || '<p style="color:var(--muted);padding:24px;grid-column:1/-1">Sin contenido.</p>';
   }catch(e){ el.innerHTML=`<p style="color:var(--red);padding:24px">Error: ${esc(e.message)}</p>`; }
 }
