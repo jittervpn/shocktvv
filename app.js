@@ -145,7 +145,7 @@ function renderContinueRow(){
     const resumeCall = c.type==='anime'
       ? `openPlayer('${c.subtype||'tv'}',${c.id},'${c.title.replace(/'/g,"\\'")}',true,'','${(c.poster||'').replace(/'/g,"\\'")}')`
       : `openPlayer('${c.type}',${c.id},'${c.title.replace(/'/g,"\\'")}',false,'','${(c.poster||'').replace(/'/g,"\\'")}')`;
-    return `<div class="card cw-card" onclick="${resumeCall}">${img}
+    return `<div class="card cw-card" tabindex="0" role="button" aria-label="${esc(c.title)}" onclick="${resumeCall}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${resumeCall}}">${img}
       <span class="card-tag">${epLabel}</span>
       <button class="cw-x" onclick="removeCW('${k}',event)" title="Quitar" aria-label="Quitar">✕</button>
       <div class="cw-bar"><div class="cw-bar-fill" style="width:${isMovie?100:60}%"></div></div>
@@ -497,7 +497,7 @@ function card(item, type){
   const k=fk(type,item.id);
   const poster=posterPath?IMG5+posterPath:'';
   const img=poster?`<img src="${poster}" alt="${title}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'card-ph\\'></div>'">`:`<div class="card-ph"></div>`;
-  return `<div class="card" onclick="openDetail('${type}',${item.id})">${img}
+  return `<div class="card" tabindex="0" role="button" aria-label="${title}" onclick="openDetail('${type}',${item.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDetail('${type}',${item.id})}">${img}
     <span class="card-tag">${tag}</span>
     ${rat>0?`<span class="card-rating">★ ${rat.toFixed(1)}</span>`:''}
     <button class="fav-heart${isFav(type,item.id)?' on':''}" data-k="${k}"
@@ -511,7 +511,7 @@ function animeCard(item){
   const tagSub=subtype==='movie'?'Película':'Serie';
   const k=fk('anime',item.id);
   const img=item.image?`<img src="${item.image}" alt="${title}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'card-ph\\'></div>'">`:`<div class="card-ph"></div>`;
-  return `<div class="card" onclick="openAnimeDetail(${item.id})">${img}
+  return `<div class="card" tabindex="0" role="button" aria-label="${title}" onclick="openAnimeDetail(${item.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openAnimeDetail(${item.id})}">${img}
     <span class="card-tag">Anime · ${tagSub}</span>
     ${item.score>0?`<span class="card-rating">★ ${Number(item.score).toFixed(1)}</span>`:''}
     <button class="fav-heart${isFav('anime',item.id)?' on':''}" data-k="${k}"
