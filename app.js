@@ -2,6 +2,7 @@
 //  ShockTV — app.js
 //  Datos: TMDB en español · Streaming: Unlimplay (película/serie) + AnimeAV1 (anime, latino)
 // ═══════════════════════════════════════
+const IMG3 = 'https://image.tmdb.org/t/p/w185';
 const IMG5 = 'https://image.tmdb.org/t/p/w500';
 const IMG7 = 'https://image.tmdb.org/t/p/w780';
 const IMGO = 'https://image.tmdb.org/t/p/original';
@@ -448,7 +449,7 @@ function slide(id, dir){ const el=$(id); if(el) el.scrollBy({left: dir*600, beha
 
 async function loadGrid(elId, type){
   const el=$(elId); if(!el || el.dataset.l) return; el.dataset.l=1;
-  el.innerHTML='<div class="sd-no-results big">Cargando...</div>';
+  el.innerHTML=Array(10).fill('<div class="skel-card"></div>').join('');
   try{
     const base = kidsMode
       ? `/discover/${type}?language=es-ES&with_genres=${type==='movie'?'16,10751':'16,10762'}&sort_by=popularity.desc`
@@ -460,7 +461,7 @@ async function loadGrid(elId, type){
 }
 async function loadAnimeGrid(){
   const el=$('anime-grid'); if(!el || el.dataset.l) return; el.dataset.l=1;
-  el.innerHTML='<div class="sd-no-results big">Cargando...</div>';
+  el.innerHTML=Array(10).fill('<div class="skel-card"></div>').join('');
   try{
     const [p1,p2,p3] = await Promise.all([
       animeAPI('top', {type:'tv', page:1}),
@@ -473,7 +474,7 @@ async function loadAnimeGrid(){
 }
 async function loadAnimeMoviesGrid(){
   const el=$('anime-movies-grid'); if(!el || el.dataset.l) return; el.dataset.l=1;
-  el.innerHTML='<div class="sd-no-results big">Cargando...</div>';
+  el.innerHTML=Array(10).fill('<div class="skel-card"></div>').join('');
   try{
     const [p1,p2] = await Promise.all([
       animeAPI('top', {type:'movie', page:1}),
@@ -534,7 +535,7 @@ async function openDetail(type, id){
   const myId=++detailReqId;
   show('loader-ov');
   try{
-    const det = await api(`/${type}/${id}?language=es-ES`);
+    const det = await api(`/${type}/${id}?language=es-ES&append_to_response=videos,credits,recommendations`);
     if(myId!==detailReqId) return;
     const title=det.title||det.name||'';
     $('mod-back').style.backgroundImage = det.backdrop_path?`url(${IMG7+det.backdrop_path})`:(det.poster_path?`url(${IMG5+det.poster_path})`:'');
@@ -543,12 +544,48 @@ async function openDetail(type, id){
     $('mod-tags').innerHTML = (det.genres||[]).map(g=>`<span class="badge">${esc(g.name)}</span>`).join('');
     $('mod-meta').innerHTML = `<span class="star">★ ${(det.vote_average||0).toFixed(1)}</span><span>${(det.release_date||det.first_air_date||'').slice(0,4)}</span><span>${type==='movie'?'Película':'Serie'}</span>`;
     const faved = isFav(type,id);
+    const trailer = findTrailer(det.videos?.results);
     $('mod-acts').innerHTML = `
       <button class="watch-btn" onclick="closeMod();openPlayer('${type}',${id},'${title.replace(/'/g,"\\'")}',false,'${(det.original_title||det.original_name||'').replace(/'/g,"\\'")}','${(det.poster_path||'').replace(/'/g,"\\'")}')">▶ Ver ahora</button>
-      <button class="fav-btn${faved?' on':''}" id="fav-btn-mod" data-k="${fk(type,id)}" onclick="toggleFav('${type}',${id},'${title.replace(/'/g,"\\'")}','${det.poster_path||''}',${det.vote_average||0})" title="Favoritos" aria-label="Favoritos">${faved?'❤️':'🤍'}</button>`;
+      ${trailer?`<button class="fav-btn" onclick="openTrailer('${trailer}')" title="Ver tráiler" aria-label="Ver tráiler">🎬</button>`:''}
+      <button class="fav-btn${faved?' on':''}" id="fav-btn-mod" data-k="${fk(type,id)}" onclick="toggleFav('${type}',${id},'${title.replace(/'/g,"\\'")}','${det.poster_path||''}',${det.vote_average||0})" title="Favoritos" aria-label="Favoritos">${faved?'❤️':'🤍'}</button>
+      <button class="fav-btn" onclick="shareTitle('${type}',${id},'${title.replace(/'/g,"\\'")}')" title="Compartir" aria-label="Compartir">📤</button>`;
+    renderCast(det.credits?.cast);
+    renderRecs((det.recommendations?.results||[]).filter(i=>!isLikelyAnimeTmdb(i)).slice(0,12), type);
     show('mod-ov');
   }catch(e){ toast('Error al cargar: '+e.message); }
   finally{ hide('loader-ov'); }
+}
+function findTrailer(videos){
+  if(!Array.isArray(videos)) return null;
+  const v = videos.find(v=>v.site==='YouTube' && v.type==='Trailer') || videos.find(v=>v.site==='YouTube');
+  return v ? v.key : null;
+}
+function openTrailer(key){
+  window.open(`https://www.youtube.com/watch?v=${key}`, '_blank', 'noopener');
+}
+function shareTitle(type, id, title){
+  const url = `${location.origin}${location.pathname}?ver=${type}-${id}`;
+  if(navigator.share){
+    navigator.share({title, text:`Mirá "${title}" en ShockTV`, url}).catch(()=>{});
+  }else{
+    navigator.clipboard?.writeText(url).then(()=>toast('🔗 Link copiado'), ()=>toast('No se pudo copiar el link'));
+  }
+}
+function renderCast(cast){
+  const wrap=$('mod-cast-wrap'), row=$('mod-cast');
+  if(!Array.isArray(cast) || !cast.length){ wrap.classList.add('hidden'); return; }
+  wrap.classList.remove('hidden');
+  row.innerHTML = cast.slice(0,12).map(p=>{
+    const img = p.profile_path ? `<img src="${IMG3+p.profile_path}" alt="${esc(p.name)}" loading="lazy">` : `<div class="cast-ph">🙂</div>`;
+    return `<div class="cast-card">${img}<div class="cast-name">${esc(p.name)}</div><div class="cast-role">${esc(p.character||'')}</div></div>`;
+  }).join('');
+}
+function renderRecs(items, type){
+  const wrap=$('mod-rec-wrap'), row=$('mod-rec');
+  if(!items.length){ wrap.classList.add('hidden'); return; }
+  wrap.classList.remove('hidden');
+  row.innerHTML = items.map(i=>card(i, i.media_type||type)).join('');
 }
 // Detalle de anime — 100% Jikan (sinopsis ya traducida por el backend)
 let animeDetailReqId=0;
@@ -665,6 +702,7 @@ async function openAnimePlayer(subtype, malId, title, origTitle, poster){
 function updPlyBadge(){
   if(pl.anime) $('ply-epbadge').textContent = (pl.type==='tv' && pl.ep) ? `Episodio ${pl.ep}` : '';
   else $('ply-epbadge').textContent = pl.type==='tv' ? `Temporada ${pl.s} · Episodio ${pl.ep}` : '';
+  const nextBtn=$('ply-next-btn'); if(nextBtn) nextBtn.style.display = pl.type==='movie' ? 'none' : '';
 }
 function loadFrame(){
   if(pl.type==='movie') setPlyFrame(UNL_MOV(pl.id));
@@ -772,6 +810,30 @@ function playEp(ep){
   loadFrame();
   renderEps();
   trackWatching();
+}
+function playNextEpisode(){
+  if(pl.type==='movie'){ toast('Esto es una película, no tiene siguiente episodio'); return; }
+  if(pl.anime){
+    const nums=(pl.animeEpisodes||[]).map(e=>e.number).sort((a,b)=>a-b);
+    const next=nums.find(n=>n>pl.ep);
+    if(next!=null){ playAnimeEp(next); toast(`▶ Episodio ${next}`); }
+    else toast('No hay más episodios disponibles todavía');
+    return;
+  }
+  const list=(pl.eps||[]).map(e=>e.episode_number).sort((a,b)=>a-b);
+  const next=list.find(n=>n>pl.ep);
+  if(next!=null){ playEp(next); toast(`▶ Episodio ${next}`); return; }
+  // Se acabó la temporada actual: probamos saltar a la primera de la siguiente
+  const seasons=(pl.seasons||[]).map(s=>s.season_number).sort((a,b)=>a-b);
+  const nextSeason=seasons.find(s=>s>pl.s);
+  if(nextSeason!=null){
+    switchSeason(nextSeason).then(()=>{
+      const firstEp=(pl.eps||[])[0]?.episode_number;
+      if(firstEp!=null){ playEp(firstEp); toast(`▶ Temporada ${nextSeason} · Episodio ${firstEp}`); }
+    });
+  }else{
+    toast('No hay más episodios');
+  }
 }
 
 // ── AnimeAV1 (streaming) — usado tanto por el flujo de anime como fuente
