@@ -607,10 +607,27 @@ async function openAnimeDetail(malId){
     const faved = isFav('anime', malId);
     $('mod-acts').innerHTML = `
       <button class="watch-btn" onclick="closeMod();openPlayer('${subtype}',${malId},'${title.replace(/'/g,"\\'")}',true,'${(m.titleEnglish||'').replace(/'/g,"\\'")}','${(m.image||'').replace(/'/g,"\\'")}')">▶ Ver ahora</button>
-      <button class="fav-btn${faved?' on':''}" id="fav-btn-mod" data-k="${fk('anime',malId)}" onclick="toggleFav('anime',${malId},'${title.replace(/'/g,"\\'")}','${m.image||''}',${m.score||0},'${subtype}')" title="Favoritos" aria-label="Favoritos">${faved?'❤️':'🤍'}</button>`;
+      ${m.trailerYoutubeId?`<button class="fav-btn" onclick="openTrailer('${m.trailerYoutubeId}')" title="Ver tráiler" aria-label="Ver tráiler">🎬</button>`:''}
+      <button class="fav-btn${faved?' on':''}" id="fav-btn-mod" data-k="${fk('anime',malId)}" onclick="toggleFav('anime',${malId},'${title.replace(/'/g,"\\'")}','${m.image||''}',${m.score||0},'${subtype}')" title="Favoritos" aria-label="Favoritos">${faved?'❤️':'🤍'}</button>
+      <button class="fav-btn" onclick="shareTitle('anime',${malId},'${title.replace(/'/g,"\\'")}')" title="Compartir" aria-label="Compartir">📤</button>`;
+    // El reparto (actores) no existe para anime de esta forma — se oculta
+    // en vez de arrastrar el de la última película/serie que se abrió.
+    $('mod-cast-wrap').classList.add('hidden');
+    renderAnimeRecs(malId);
     show('mod-ov');
   }catch(e){ toast('Error al cargar: '+e.message); }
   finally{ hide('loader-ov'); }
+}
+async function renderAnimeRecs(malId){
+  const wrap=$('mod-rec-wrap'), row=$('mod-rec');
+  wrap.classList.add('hidden'); row.innerHTML='';
+  try{
+    const r = await animeAPI('recommendations', {id: malId});
+    const items = r?.data?.results || [];
+    if(!items.length) return;
+    wrap.classList.remove('hidden');
+    row.innerHTML = items.map(animeCard).join('');
+  }catch(e){ /* silencioso: si falla, simplemente no se muestra la fila */ }
 }
 // Sinopsis truncada a 3 líneas + botón "Ver sinopsis completa" (solo si hace falta)
 function setSyn(text){

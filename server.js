@@ -26,7 +26,6 @@ const vm      = require('node:vm');
 const { URL } = require('node:url');
 
 const app  = express();
-app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 const TMDB_TOKEN = (process.env.TMDB_TOKEN || '').trim();
 // Key interna para proteger /api/anime/* — la genera y usa el propio frontend
@@ -1263,6 +1262,7 @@ function normalizeJikanBrief(it) {
     episodes: it.episodes || null,
     type: (it.type || 'tv').toLowerCase(), // tv, movie, ova, ona, special, music
     status: it.status || null,
+    trailerYoutubeId: it.trailer?.youtube_id || null,
   };
 }
 
@@ -1337,6 +1337,25 @@ app.get('/api/anime/meta', authAnime, asyncH(async (req, res) => {
   res.json({ success: true, data });
 }));
 
+//    GET /api/anime/recommendations?id=malId
+app.get('/api/anime/recommendations', authAnime, asyncH(async (req, res) => {
+  const { id } = req.query;
+  if (!id) return res.status(400).json({ success: false, message: 'Falta parámetro id' });
+  const ck = `rec:${id}`;
+  const hit = cacheGet(ck, 604800000); // 7 días, cambia poco
+  if (hit) return res.json({ success: true, data: hit });
+  try {
+    const r = await fetch(`https://api.jikan.moe/v4/anime/${id}/recommendations`);
+    const j = await r.json();
+    const results = (j?.data || []).slice(0, 12).map(x => normalizeJikanBrief(x.entry));
+    const data = { results };
+    cacheSet(ck, data);
+    res.json({ success: true, data });
+  } catch (e) {
+    res.json({ success: true, data: { results: [] } });
+  }
+}));
+
 // Compatibilidad: alias viejo de títulos alternativos (lo usa AnimeAV1
 // para reintentar la búsqueda de streaming con nombres en inglés/japonés)
 app.get('/api/jikan/titles', authAnime, asyncH(async (req, res) => {
@@ -1409,9 +1428,6 @@ app.get('/api/presence/stats', (req, res) => {
   const thisTitle = (type && id) ? (perTitle.get(`${type}:${id}`) || 0) : 0;
   res.json({ success: true, data: { online: presence.size, watchingNow, thisTitle } });
 });
-
-// ── PeliApi (servidores de PelisPlus/Cuevana3/RePelisHD) integrados ──
-try { require('./peliapi').mountPeliApi(app); } catch (e) { console.error('[PeliApi] no se pudo montar:', e.message); }
 
 // Error handler
 app.use((err, req, res, next) => {
