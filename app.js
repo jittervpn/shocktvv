@@ -165,7 +165,6 @@ function getSessionId(){
 }
 const SID = getSessionId();
 let currentWatching = null;
-let watchingBadgeTimer = null;
 
 async function pingPresence(){
   try{
@@ -186,13 +185,6 @@ async function fetchGlobalStats(){
     }
   }catch(e){ /* silencioso */ }
 }
-async function fetchTitleWatching(type, id){
-  try{
-    const r = await fetch(`${window.__API_BASE__}/api/presence/stats?type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`);
-    const d = await r.json();
-    return d?.data?.thisTitle || 0;
-  }catch(e){ return 0; }
-}
 function startPresence(){
   pingPresence();
   setInterval(pingPresence, 15000);
@@ -207,21 +199,10 @@ function startPresence(){
 function startWatchingPing(type, id, title){
   currentWatching = { type, id, title };
   pingPresence();
-  clearInterval(watchingBadgeTimer);
-  const refresh = async () => {
-    const n = await fetchTitleWatching(type, id);
-    const el = $('ply-watching'); if(!el) return;
-    if(n>0){ el.innerHTML = `<span class="dot"></span>${n} viendo esto ahora`; show('ply-watching'); }
-    else hide('ply-watching');
-  };
-  refresh();
-  watchingBadgeTimer = setInterval(refresh, 15000);
 }
 function stopWatchingPing(){
   currentWatching = null;
-  clearInterval(watchingBadgeTimer);
   pingPresence();
-  hide('ply-watching');
 }
 
 // ═══════════════════════════════
@@ -309,7 +290,7 @@ function setNav(s){
   (NM[s]||[]).forEach(id => $(id)?.classList.add('active'));
 }
 const SECS = ['home-sections', 'movies-section','tv-section','anime-section','fav-section','search-section'];
-function hideAll(){ SECS.forEach(hide); hide('loader-ov'); }
+function hideAll(){ SECS.forEach(hide); hide('loader-ov'); clearInterval(heroTimer); }
 function goHome(){
   hideAll(); show('home-sections');
   setNav('home'); window.scrollTo({top:0, behavior:'smooth'});
@@ -985,8 +966,25 @@ function runSrc(i){ window.__srcItems[i].run(); closeSrcModal(); }
 function closeSrcModal(e){ if(e && e.target!==$('srcmod-ov')) return; hide('srcmod-ov'); }
 
 // ═══════════════════════════════
+//  ESTABILIDAD — si algo se rompe en un lugar que no anticipamos, avisamos
+//  con un toast en vez de dejar la app rota en silencio sin explicación.
+// ═══════════════════════════════
+window.addEventListener('error', (e) => {
+  console.error('[ShockTV] Error:', e.error || e.message);
+  try{ toast('⚠️ Ocurrió un error — probá recargar la página'); }catch(_){}
+});
+window.addEventListener('unhandledrejection', (e) => {
+  console.error('[ShockTV] Promesa rechazada:', e.reason);
+});
+
+// ═══════════════════════════════
 //  INIT
 // ═══════════════════════════════
+window.addEventListener('scroll', () => {
+  const btn = $('scroll-top-btn'); if(!btn) return;
+  btn.classList.toggle('hidden', window.scrollY < 500);
+}, { passive: true });
+
 document.addEventListener('DOMContentLoaded', async () => {
   show('loader-ov');
   loadStore();
