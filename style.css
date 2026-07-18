@@ -810,3 +810,9 @@ img{display:block;max-width:100%}
   .btn-primary,.btn-secondary{flex:1;justify-content:center}
   .card{width:128px}
 }
+
+/* Servidores adicionales de Cinetoons — colores de marca */
+.src-item.ct-srv-1 .src-label{color:#e63950;}
+.src-item.ct-srv-1 .src-icon{background:rgba(230,57,80,.15);color:#e63950;}
+.src-item.ct-srv-2 .src-label{color:#2ec4b6;}
+.src-item.ct-srv-2 .src-icon{background:rgba(46,196,182,.15);color:#2ec4b6;}

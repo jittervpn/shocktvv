@@ -952,9 +952,22 @@ function openSrcModal(){
       label:'Unlimplay', tag:'ALTERNO', active: pl.srcIdx===-1,
       run: ()=>{ pl.srcIdx=-1; loadFrame(); toast('Reproduciendo: Unlimplay'); }
     });
+    // Servidores adicionales de Cinetoons (catálogo propio, srv=1/srv=2)
+    const CT_BASE = 'https://panel.cinetoons.xyz/api/embed.php';
+    const ctParams = pl.type === 'movie'
+      ? `tmdb_id=${pl.id}&type=movie`
+      : `tmdb_id=${pl.id}&type=tv&s=${pl.s}&e=${pl.ep}`;
+    items.push({
+      label:'Cinetoons 1', tag:'ALTERNO', active: pl.srcIdx===-2, cls:'ct-srv ct-srv-1',
+      run: ()=>{ pl.srcIdx=-2; setPlyFrame(`${CT_BASE}?${ctParams}&srv=1`); toast('Reproduciendo: Cinetoons 1'); }
+    });
+    items.push({
+      label:'Cinetoons 2', tag:'ALTERNO', active: pl.srcIdx===-3, cls:'ct-srv ct-srv-2',
+      run: ()=>{ pl.srcIdx=-3; setPlyFrame(`${CT_BASE}?${ctParams}&srv=2`); toast('Reproduciendo: Cinetoons 2'); }
+    });
   }
   list.innerHTML = items.length ? items.map((it,i)=>`
-    <div class="src-item${it.active?' active':''}" onclick="runSrc(${i})">
+    <div class="src-item${it.active?' active':''}${it.cls?' '+it.cls:''}" onclick="runSrc(${i})">
       <div class="src-icon">▶</div>
       <div class="src-label">${esc(it.label)}</div>
       <div class="src-tag">${it.tag}</div>
