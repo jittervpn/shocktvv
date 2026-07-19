@@ -1,2 +1,2 @@
-// El backend corre en Vercel.
-window.__API_BASE__ = "https://api.shocktv.online";
+// El frontend y el backend ahora viven juntos en el mismo dominio (Vercel).
+window.__API_BASE__ = "";

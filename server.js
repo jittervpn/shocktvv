@@ -52,11 +52,19 @@ app.use(cors({
 app.use(express.json());
 
 // ── Archivos estáticos ──
-app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+// Ahora el frontend vive en la raíz del repo (ya no en /public).
+// Bloqueamos archivos internos del servidor para que no queden expuestos como estáticos.
+app.use((req, res, next) => {
+  if (/^\/(server\.js|package(-lock)?\.json|\.env.*|README\.md|INTEGRACION-CINETOONS\.md)$/i.test(req.path)) {
+    return res.status(404).end();
+  }
+  next();
+});
+app.use(express.static(__dirname, { index: false }));
 
 app.get(['/', '/index.html'], (req, res) => {
   try{
-    let html = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+    let html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
     html = html.replace('</head>',
       `<script>window.__TMDB_TOKEN__="${TMDB_TOKEN}";window.__ANIME_KEY__="${ANIME_KEY}";</script></head>`);
     res.setHeader('Content-Type', 'text/html').send(html);
@@ -1436,7 +1444,7 @@ app.use((err, req, res, next) => {
 
 // SPA fallback
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'), err => {
+  res.sendFile(path.join(__dirname, 'index.html'), err => {
     if (err) res.status(404).send('Not found. El frontend de ShockTV vive en GitHub Pages.');
   });
 });
