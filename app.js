@@ -339,24 +339,15 @@ async function liveSearch(q){
   const dd=$('search-dropdown');
   dd.innerHTML='<div class="sd-no-results">Buscando...</div>'; show('search-dropdown');
   try{
-    const [tmdbR, animeR] = await Promise.all([
-      api('/search/multi?query='+encodeURIComponent(q)+'&language=es-ES&page=1').catch(()=>({results:[]})),
-      kidsMode ? Promise.resolve(null) : animeAPI('find', {q}).catch(()=>null),
-    ]);
+    const tmdbR = await api('/search/multi?query='+encodeURIComponent(q)+'&language=es-ES&page=1').catch(()=>({results:[]}));
     if(myId!==searchReqId) return;
-    const tmdbItems=kidsFilterItems((tmdbR.results||[]).filter(i=>i.media_type!=='person' && !isLikelyAnimeTmdb(i))).slice(0,6);
-    const animeItems=(animeR?.data?.results||[]).slice(0,4);
-    if(!tmdbItems.length && !animeItems.length){ dd.innerHTML='<div class="sd-no-results">Sin resultados</div>'; return; }
+    const tmdbItems=kidsFilterItems((tmdbR.results||[]).filter(i=>i.media_type!=='person')).slice(0,10);
+    if(!tmdbItems.length){ dd.innerHTML='<div class="sd-no-results">Sin resultados</div>'; return; }
     dd.innerHTML = tmdbItems.map(i=>`
       <div class="sd-item" onclick="hide('search-dropdown');openDetail('${i.media_type||'tv'}',${i.id})">
         ${i.poster_path?`<img class="sd-img" src="${IMG5+i.poster_path}" alt="" loading="lazy" onerror="this.style.display='none'">`:'<div class="sd-img"></div>'}
         <div class="sd-info"><div class="sd-title">${esc(i.title||i.name||'')}</div><div class="sd-meta">${(i.release_date||i.first_air_date||'').slice(0,4)}</div></div>
-        <span class="sd-tag">${i.media_type==='movie'?'Película':'Serie'}</span>
-      </div>`).join('') + animeItems.map(i=>`
-      <div class="sd-item" onclick="hide('search-dropdown');openAnimeDetail(${i.id})">
-        ${i.image?`<img class="sd-img" src="${i.image}" alt="" loading="lazy" onerror="this.style.display='none'">`:'<div class="sd-img"></div>'}
-        <div class="sd-info"><div class="sd-title">${esc(i.title)}</div><div class="sd-meta">${i.year||''}</div></div>
-        <span class="sd-tag">Anime</span>
+        <span class="sd-tag">${isLikelyAnimeTmdb(i)?'Anime':(i.media_type==='movie'?'Película':'Serie')}</span>
       </div>`).join('');
   }catch(e){ if(myId===searchReqId) dd.innerHTML='<div class="sd-no-results">Error al buscar</div>'; }
 }
@@ -366,14 +357,10 @@ function doSearch(){
   const myId=++doSearchReqId;
   hideAll(); show('search-section'); $('search-title').textContent=`Resultados: "${q}"`;
   $('search-results').innerHTML='<div class="sd-no-results big">Buscando...</div>';
-  Promise.all([
-    api('/search/multi?query='+encodeURIComponent(q)+'&language=es-ES').catch(()=>({results:[]})),
-    kidsMode ? Promise.resolve(null) : animeAPI('find', {q}).catch(()=>null),
-  ]).then(([tmdbD, animeD])=>{
+  api('/search/multi?query='+encodeURIComponent(q)+'&language=es-ES').catch(()=>({results:[]})).then((tmdbD)=>{
     if(myId!==doSearchReqId) return;
-    const tmdbItems=kidsFilterItems((tmdbD.results||[]).filter(i=>i.media_type!=='person' && !isLikelyAnimeTmdb(i)));
-    const animeItems=animeD?.data?.results||[];
-    const html = tmdbItems.map(i=>card(i, i.media_type||'tv')).join('') + animeItems.map(animeCard).join('');
+    const tmdbItems=kidsFilterItems((tmdbD.results||[]).filter(i=>i.media_type!=='person'));
+    const html = tmdbItems.map(i=>card(i, i.media_type||'tv')).join('');
     $('search-results').innerHTML = html || '<p style="color:var(--muted);padding:24px">Sin resultados.</p>';
   }).catch(e=>{ if(myId===doSearchReqId) $('search-results').innerHTML=`<p style="color:var(--red);padding:24px">Error: ${esc(e.message)}</p>`; });
 }
@@ -391,11 +378,12 @@ async function loadHome(){
     api('/movie/popular?language=es-ES&page=2'),
     api('/tv/popular?language=es-ES'),
   ];
+  const ANIME_Q = 'with_genres=16&with_original_language=ja&sort_by=popularity.desc';
   if(!kidsMode){
-    calls.push(animeAPI('top', {type:'tv', page:1}).catch(()=>null));
-    calls.push(animeAPI('top', {type:'tv', page:2}).catch(()=>null));
-    calls.push(animeAPI('top', {type:'movie', page:1}).catch(()=>null));
-    calls.push(animeAPI('top', {type:'movie', page:2}).catch(()=>null));
+    calls.push(api(`/discover/tv?language=es-ES&${ANIME_Q}&page=1`).catch(()=>null));
+    calls.push(api(`/discover/tv?language=es-ES&${ANIME_Q}&page=2`).catch(()=>null));
+    calls.push(api(`/discover/movie?language=es-ES&${ANIME_Q}&page=1`).catch(()=>null));
+    calls.push(api(`/discover/movie?language=es-ES&${ANIME_Q}&page=2`).catch(()=>null));
   }
   const [tm, ttv, mp1, mp2, tvp, anTV1, anTV2, anMov1, anMov2] = await Promise.all(calls);
   const heroPool = kidsFilterItems(tm.results||[]).filter(m=>m.backdrop_path && !isLikelyAnimeTmdb(m));
@@ -407,10 +395,10 @@ async function loadHome(){
   renderSl('s2', kidsFilterItems(ttv.results||[]).filter(i=>!isLikelyAnimeTmdb(i)), false, true);
   if(!kidsMode){
     const s3=$('s3'), s4=$('s4');
-    const anTVAll=[...(anTV1?.data?.results||[]),...(anTV2?.data?.results||[])];
-    const anMovAll=[...(anMov1?.data?.results||[]),...(anMov2?.data?.results||[])];
-    if(s3) s3.innerHTML = anTVAll.map(animeCard).join('') || '<p style="color:var(--muted);padding:10px">Sin contenido.</p>';
-    if(s4) s4.innerHTML = anMovAll.map(animeCard).join('') || '<p style="color:var(--muted);padding:10px">Sin contenido.</p>';
+    const anTVAll=[...(anTV1?.results||[]),...(anTV2?.results||[])];
+    const anMovAll=[...(anMov1?.results||[]),...(anMov2?.results||[])];
+    if(s3) s3.innerHTML = anTVAll.map(i=>card(i,'tv')).join('') || '<p style="color:var(--muted);padding:10px">Sin contenido.</p>';
+    if(s4) s4.innerHTML = anMovAll.map(i=>card(i,'movie')).join('') || '<p style="color:var(--muted);padding:10px">Sin contenido.</p>';
   }
   renderContinueRow();
   applyKidsUI();
@@ -449,18 +437,20 @@ async function loadAnimeGrid(){
   const el=$('anime-grid'); if(!el || el.dataset.l) return; el.dataset.l=1;
   el.innerHTML=Array(10).fill('<div class="skel-card"></div>').join('');
   try{
-    const pages = await Promise.all([1,2,3,4,5].map(p=>animeAPI('top', {type:'tv', page:p})));
-    const items = pages.flatMap(p=>p?.data?.results||[]);
-    el.innerHTML=items.map(animeCard).join('') || '<p style="color:var(--muted);padding:24px;grid-column:1/-1">Sin contenido.</p>';
+    const q='with_genres=16&with_original_language=ja&sort_by=popularity.desc&language=es-ES';
+    const pages = await Promise.all([1,2,3,4,5].map(p=>api(`/discover/tv?${q}&page=${p}`)));
+    const items = pages.flatMap(p=>p?.results||[]);
+    el.innerHTML=items.map(i=>card(i,'tv')).join('') || '<p style="color:var(--muted);padding:24px;grid-column:1/-1">Sin contenido.</p>';
   }catch(e){ el.innerHTML=`<p style="color:var(--red);padding:24px">Error: ${esc(e.message)}</p>`; }
 }
 async function loadAnimeMoviesGrid(){
   const el=$('anime-movies-grid'); if(!el || el.dataset.l) return; el.dataset.l=1;
   el.innerHTML=Array(10).fill('<div class="skel-card"></div>').join('');
   try{
-    const pages = await Promise.all([1,2,3,4].map(p=>animeAPI('top', {type:'movie', page:p})));
-    const items = pages.flatMap(p=>p?.data?.results||[]);
-    el.innerHTML=items.map(animeCard).join('') || '<p style="color:var(--muted);padding:24px;grid-column:1/-1">Sin contenido.</p>';
+    const q='with_genres=16&with_original_language=ja&sort_by=popularity.desc&language=es-ES';
+    const pages = await Promise.all([1,2,3,4].map(p=>api(`/discover/movie?${q}&page=${p}`)));
+    const items = pages.flatMap(p=>p?.results||[]);
+    el.innerHTML=items.map(i=>card(i,'movie')).join('') || '<p style="color:var(--muted);padding:24px;grid-column:1/-1">Sin contenido.</p>';
   }catch(e){ el.innerHTML=`<p style="color:var(--red);padding:24px">Error: ${esc(e.message)}</p>`; }
 }
 let animeTab='tv';
@@ -524,8 +514,10 @@ async function openDetail(type, id){
     $('mod-meta').innerHTML = `<span class="star">★ ${(det.vote_average||0).toFixed(1)}</span><span>${(det.release_date||det.first_air_date||'').slice(0,4)}</span><span>${type==='movie'?'Película':'Serie'}</span>`;
     const faved = isFav(type,id);
     const trailer = findTrailer(det.videos?.results);
+    const isAnime = isLikelyAnimeTmdb({genre_ids:(det.genres||[]).map(g=>g.id), original_language:det.original_language});
+    const watchBtn = `<button class="watch-btn" onclick="closeMod();openPlayer('${type}',${id},'${title.replace(/'/g,"\\'")}',${isAnime?'true':'false'},'${(det.original_title||det.original_name||'').replace(/'/g,"\\'")}','${(det.poster_path||'').replace(/'/g,"\\'")}')">▶ Ver ahora</button>`;
     $('mod-acts').innerHTML = `
-      <button class="watch-btn" onclick="closeMod();openPlayer('${type}',${id},'${title.replace(/'/g,"\\'")}',false,'${(det.original_title||det.original_name||'').replace(/'/g,"\\'")}','${(det.poster_path||'').replace(/'/g,"\\'")}')">▶ Ver ahora</button>
+      ${watchBtn}
       ${trailer?`<button class="fav-btn" onclick="openTrailer('${trailer}')" title="Ver tráiler" aria-label="Ver tráiler">🎬</button>`:''}
       <button class="fav-btn${faved?' on':''}" id="fav-btn-mod" data-k="${fk(type,id)}" onclick="toggleFav('${type}',${id},'${title.replace(/'/g,"\\'")}','${det.poster_path||''}',${det.vote_average||0})" title="Favoritos" aria-label="Favoritos">${faved?'❤️':'🤍'}</button>
       <button class="fav-btn" onclick="shareTitle('${type}',${id},'${title.replace(/'/g,"\\'")}')" title="Compartir" aria-label="Compartir">📤</button>`;
@@ -657,9 +649,10 @@ async function openPlayer(type, id, title, isAnime=false, origTitle='', poster='
   }
   hide('loader-ov'); show('ply-ov'); document.body.style.overflow='hidden';
 }
-// Reproductor de anime — 100% AnimeAV1 (streaming) + Jikan (títulos alternativos
-// para reintentar la búsqueda). Sin TMDB, sin fallback a Unlimplay: Unlimplay
-// necesita un ID de TMDB que el anime ya no tiene en esta app.
+// Reproductor de anime — AnimeAV1 es la fuente principal (busca por título).
+// El "id" que llega acá es el tmdb_id (el anime ahora sale del catálogo de
+// TMDB), así que también se puede ofrecer Cinetoons como fuente alterna
+// (ver openSrcModal). Unlimplay se deja afuera para anime a propósito.
 async function openAnimePlayer(subtype, malId, title, origTitle, poster){
   hide('mod-ov'); show('loader-ov');
   pl = {type:subtype, id:malId, title, s:1, ep:1, anime:true, total:0, animeSlug:'', servers:[], srcIdx:0, animeEpisodes:[], poster:poster||''};
@@ -947,16 +940,19 @@ function openSrcModal(){
     });
   });
   if(!pl.anime){
-    // Unlimplay necesita un ID de TMDB — no existe para anime en esta app
+    // Unlimplay necesita un ID de TMDB — no lo ofrecemos para anime (AnimeAV1 es la fuente principal ahí)
     items.push({
       label:'Unlimplay', tag:'ALTERNO', active: pl.srcIdx===-1,
       run: ()=>{ pl.srcIdx=-1; loadFrame(); toast('Reproduciendo: Unlimplay'); }
     });
-    // Servidores adicionales de Cinetoons (catálogo propio, srv=1/srv=2)
+  }
+  {
+    // Servidores adicionales de Cinetoons (catálogo propio, srv=1/srv=2).
+    // Ahora que el anime también usa TMDB id (pl.id), Cinetoons funciona igual para anime.
     const CT_BASE = 'https://panel.cinetoons.xyz/api/embed.php';
     const ctParams = pl.type === 'movie'
       ? `tmdb_id=${pl.id}&type=movie`
-      : `tmdb_id=${pl.id}&type=tv&s=${pl.s}&e=${pl.ep}`;
+      : `tmdb_id=${pl.id}&type=tv&s=${pl.anime?1:pl.s}&e=${pl.ep}`;
     items.push({
       label:'Cinetoons 1', tag:'ALTERNO', active: pl.srcIdx===-2, cls:'ct-srv ct-srv-1',
       run: ()=>{ pl.srcIdx=-2; setPlyFrame(`${CT_BASE}?${ctParams}&srv=1`); toast('Reproduciendo: Cinetoons 1'); }
