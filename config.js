@@ -1,2 +1,2 @@
-// El backend corre en Vercel.
-window.__API_BASE__ = "https://api.shocktv.online";
+// El backend corre en Railway.
+window.__API_BASE__ = "https://shocktvv-production.up.railway.app";
