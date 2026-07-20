@@ -962,6 +962,19 @@ function openSrcModal(){
       run: ()=>{ pl.srcIdx=-3; setPlyFrame(`${CT_BASE}?${ctParams}&srv=2`); toast('Reproduciendo: Cinetoons 2'); }
     });
   }
+  {
+    // Latino Stream — scraper propio (PelisPlus + RePelisHD), audio Latino.
+    // Busca por título, así funciona igual para movie/tv/anime.
+    const LS_BASE = 'https://latino-stream-finder.lovable.app/api/public/embed';
+    const lsType = pl.anime ? 'anime' : (pl.type === 'movie' ? 'movie' : 'tv');
+    const lsParams = new URLSearchParams({ title: pl.title || '', type: lsType });
+    if (lsType !== 'movie') { lsParams.set('s', String(pl.anime?1:pl.s)); lsParams.set('e', String(pl.ep)); }
+    const lsUrl = `${LS_BASE}?${lsParams.toString()}`;
+    items.push({
+      label:'Latino Stream', tag:'LATINO', active: pl.srcIdx===-4, cls:'ct-srv ct-srv-1',
+      run: ()=>{ pl.srcIdx=-4; setPlyFrame(lsUrl); toast('Reproduciendo: Latino Stream'); }
+    });
+  }
   list.innerHTML = items.length ? items.map((it,i)=>`
     <div class="src-item${it.active?' active':''}${it.cls?' '+it.cls:''}" onclick="runSrc(${i})">
       <div class="src-icon">▶</div>
