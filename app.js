@@ -142,7 +142,7 @@ function renderContinueRow(){
   sl.innerHTML = items.map(([k,c])=>{
     const isMovie = c.type==='movie' || (c.type==='anime' && c.subtype==='movie');
     const epLabel = isMovie ? 'Película' : `T${c.s} · Ep ${c.ep}`;
-    const img = c.poster ? `<img src="${c.poster.startsWith('http')?c.poster:IMG5+c.poster}" alt="${esc(c.title)}" loading="lazy">` : `<div class="card-ph"></div>`;
+    const img = c.poster ? `<img src="${c.poster.startsWith('http')?c.poster:IMG5+c.poster}" alt="${esc(c.title)}" loading="lazy" decoding="async">` : `<div class="card-ph"></div>`;
     const resumeCall = c.type==='anime'
       ? `openPlayer('${c.subtype||'tv'}',${c.id},'${c.title.replace(/'/g,"\\'")}',true,'','${(c.poster||'').replace(/'/g,"\\'")}')`
       : `openPlayer('${c.type}',${c.id},'${c.title.replace(/'/g,"\\'")}',false,'','${(c.poster||'').replace(/'/g,"\\'")}')`;
@@ -345,7 +345,7 @@ async function liveSearch(q){
     if(!tmdbItems.length){ dd.innerHTML='<div class="sd-no-results">Sin resultados</div>'; return; }
     dd.innerHTML = tmdbItems.map(i=>`
       <div class="sd-item" onclick="hide('search-dropdown');openDetail('${i.media_type||'tv'}',${i.id})">
-        ${i.poster_path?`<img class="sd-img" src="${IMG5+i.poster_path}" alt="" loading="lazy" onerror="this.style.display='none'">`:'<div class="sd-img"></div>'}
+        ${i.poster_path?`<img class="sd-img" src="${IMG5+i.poster_path}" alt="" loading="lazy" decoding="async" onerror="this.style.display='none'">`:'<div class="sd-img"></div>'}
         <div class="sd-info"><div class="sd-title">${esc(i.title||i.name||'')}</div><div class="sd-meta">${(i.release_date||i.first_air_date||'').slice(0,4)}</div></div>
         <span class="sd-tag">${isLikelyAnimeTmdb(i)?'Anime':(i.media_type==='movie'?'Película':'Serie')}</span>
       </div>`).join('');
@@ -381,11 +381,9 @@ async function loadHome(){
   const ANIME_Q = 'with_genres=16&with_original_language=ja&sort_by=popularity.desc';
   if(!kidsMode){
     calls.push(api(`/discover/tv?language=es-ES&${ANIME_Q}&page=1`).catch(()=>null));
-    calls.push(api(`/discover/tv?language=es-ES&${ANIME_Q}&page=2`).catch(()=>null));
     calls.push(api(`/discover/movie?language=es-ES&${ANIME_Q}&page=1`).catch(()=>null));
-    calls.push(api(`/discover/movie?language=es-ES&${ANIME_Q}&page=2`).catch(()=>null));
   }
-  const [tm, ttv, mp1, mp2, tvp, anTV1, anTV2, anMov1, anMov2] = await Promise.all(calls);
+  const [tm, ttv, mp1, mp2, tvp, anTV1, anMov1] = await Promise.all(calls);
   const heroPool = kidsFilterItems(tm.results||[]).filter(m=>m.backdrop_path && !isLikelyAnimeTmdb(m));
   hero = heroPool.slice(0,8);
   if(hero.length){ $('hero-section').style.display=''; renderHero(hero[0],'movie'); startHero(); }
@@ -395,8 +393,8 @@ async function loadHome(){
   renderSl('s2', kidsFilterItems(ttv.results||[]).filter(i=>!isLikelyAnimeTmdb(i)), false, true);
   if(!kidsMode){
     const s3=$('s3'), s4=$('s4');
-    const anTVAll=[...(anTV1?.results||[]),...(anTV2?.results||[])];
-    const anMovAll=[...(anMov1?.results||[]),...(anMov2?.results||[])];
+    const anTVAll=anTV1?.results||[];
+    const anMovAll=anMov1?.results||[];
     if(s3) s3.innerHTML = anTVAll.map(i=>card(i,'tv')).join('') || '<p style="color:var(--muted);padding:10px">Sin contenido.</p>';
     if(s4) s4.innerHTML = anMovAll.map(i=>card(i,'movie')).join('') || '<p style="color:var(--muted);padding:10px">Sin contenido.</p>';
   }
@@ -421,37 +419,73 @@ function renderSl(id, items, mixed=false, isTV=false){
 }
 function slide(id, dir){ const el=$(id); if(el) el.scrollBy({left: dir*600, behavior:'smooth'}); }
 
-async function loadGrid(elId, type){
+// ═══════════════════════════════
+//  GRILLAS con scroll infinito
+//  Antes se cargaban 3-5 páginas de TMDB (60-100 tarjetas) de un
+//  saque y se metían todas al DOM juntas — eso es lo que más traba
+//  a un celu de gama baja (decodificar ~100 imágenes y pintar ~100
+//  tarjetas en un solo golpe). Ahora se carga de a 1 página (20
+//  tarjetas) y se pide la siguiente sola cuando el usuario llega
+//  casi al final (IntersectionObserver, sin listeners de scroll
+//  pesados).
+// ═══════════════════════════════
+function mountInfiniteGrid(el, fetchPage, renderItem, maxPages=8){
+  el.innerHTML='';
+  const sentinel=document.createElement('div');
+  sentinel.className='grid-sentinel';
+  el.appendChild(sentinel);
+  let page=1, loading=false, done=false;
+  async function loadNext(){
+    if(loading||done) return;
+    loading=true;
+    if(page===1) sentinel.insertAdjacentHTML('beforebegin', Array(10).fill('<div class="skel-card"></div>').join(''));
+    try{
+      const items = await fetchPage(page);
+      if(page===1) el.querySelectorAll('.skel-card').forEach(n=>n.remove());
+      if(!items || !items.length){
+        done=true;
+        if(page===1) sentinel.insertAdjacentHTML('beforebegin', '<p style="color:var(--muted);padding:24px;grid-column:1/-1">Sin contenido.</p>');
+      }else{
+        sentinel.insertAdjacentHTML('beforebegin', items.map(renderItem).join(''));
+        page++;
+        if(page>maxPages) done=true;
+      }
+    }catch(e){
+      if(page===1) sentinel.insertAdjacentHTML('beforebegin', `<p style="color:var(--red);padding:24px">Error: ${esc(e.message)}</p>`);
+      done=true;
+    }finally{ loading=false; }
+  }
+  const io=new IntersectionObserver(entries=>{
+    if(entries.some(en=>en.isIntersecting)) loadNext();
+  }, {rootMargin:'600px'});
+  io.observe(sentinel);
+  loadNext();
+}
+function loadGrid(elId, type){
   const el=$(elId); if(!el || el.dataset.l) return; el.dataset.l=1;
-  el.innerHTML=Array(10).fill('<div class="skel-card"></div>').join('');
-  try{
-    const base = kidsMode
-      ? `/discover/${type}?language=es-ES&with_genres=${type==='movie'?'16,10751':'16,10762'}&sort_by=popularity.desc`
-      : `/${type}/popular?language=es-ES`;
-    const [p1,p2,p3] = await Promise.all([api(`${base}&page=1`), api(`${base}&page=2`), api(`${base}&page=3`)]);
-    const items = kidsFilterItems([...(p1.results||[]),...(p2.results||[]),...(p3.results||[])]).filter(i=>!isLikelyAnimeTmdb(i)); // filtro extra de seguridad
-    el.innerHTML=items.map(i=>card(i,type)).join('') || '<p style="color:var(--muted);padding:24px;grid-column:1/-1">Sin contenido.</p>';
-  }catch(e){ el.innerHTML=`<p style="color:var(--red);padding:24px">Error: ${esc(e.message)}</p>`; }
+  const base = kidsMode
+    ? `/discover/${type}?language=es-ES&with_genres=${type==='movie'?'16,10751':'16,10762'}&sort_by=popularity.desc`
+    : `/${type}/popular?language=es-ES`;
+  mountInfiniteGrid(el, async(page)=>{
+    const r = await api(`${base}&page=${page}`);
+    return kidsFilterItems(r.results||[]).filter(i=>!isLikelyAnimeTmdb(i));
+  }, i=>card(i,type));
 }
-async function loadAnimeGrid(){
+function loadAnimeGrid(){
   const el=$('anime-grid'); if(!el || el.dataset.l) return; el.dataset.l=1;
-  el.innerHTML=Array(10).fill('<div class="skel-card"></div>').join('');
-  try{
-    const q='with_genres=16&with_original_language=ja&sort_by=popularity.desc&language=es-ES';
-    const pages = await Promise.all([1,2,3,4,5].map(p=>api(`/discover/tv?${q}&page=${p}`)));
-    const items = pages.flatMap(p=>p?.results||[]);
-    el.innerHTML=items.map(i=>card(i,'tv')).join('') || '<p style="color:var(--muted);padding:24px;grid-column:1/-1">Sin contenido.</p>';
-  }catch(e){ el.innerHTML=`<p style="color:var(--red);padding:24px">Error: ${esc(e.message)}</p>`; }
+  const q='with_genres=16&with_original_language=ja&sort_by=popularity.desc&language=es-ES';
+  mountInfiniteGrid(el, async(page)=>{
+    const r = await api(`/discover/tv?${q}&page=${page}`);
+    return r.results||[];
+  }, i=>card(i,'tv'));
 }
-async function loadAnimeMoviesGrid(){
+function loadAnimeMoviesGrid(){
   const el=$('anime-movies-grid'); if(!el || el.dataset.l) return; el.dataset.l=1;
-  el.innerHTML=Array(10).fill('<div class="skel-card"></div>').join('');
-  try{
-    const q='with_genres=16&with_original_language=ja&sort_by=popularity.desc&language=es-ES';
-    const pages = await Promise.all([1,2,3,4].map(p=>api(`/discover/movie?${q}&page=${p}`)));
-    const items = pages.flatMap(p=>p?.results||[]);
-    el.innerHTML=items.map(i=>card(i,'movie')).join('') || '<p style="color:var(--muted);padding:24px;grid-column:1/-1">Sin contenido.</p>';
-  }catch(e){ el.innerHTML=`<p style="color:var(--red);padding:24px">Error: ${esc(e.message)}</p>`; }
+  const q='with_genres=16&with_original_language=ja&sort_by=popularity.desc&language=es-ES';
+  mountInfiniteGrid(el, async(page)=>{
+    const r = await api(`/discover/movie?${q}&page=${page}`);
+    return r.results||[];
+  }, i=>card(i,'movie'));
 }
 let animeTab='tv';
 function setAnimeTab(tab){
@@ -473,7 +507,7 @@ function card(item, type){
   const tag=type==='movie'?'Film':'TV';
   const k=fk(type,item.id);
   const poster=posterPath?IMG5+posterPath:'';
-  const img=poster?`<img src="${poster}" alt="${title}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'card-ph\\'></div>'">`:`<div class="card-ph"></div>`;
+  const img=poster?`<img src="${poster}" alt="${title}" loading="lazy" decoding="async" onerror="this.parentElement.innerHTML='<div class=\\'card-ph\\'></div>'">`:`<div class="card-ph"></div>`;
   return `<div class="card" tabindex="0" role="button" aria-label="${title}" onclick="openDetail('${type}',${item.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDetail('${type}',${item.id})}">${img}
     <span class="card-tag">${tag}</span>
     ${rat>0?`<span class="card-rating">★ ${rat.toFixed(1)}</span>`:''}
@@ -487,7 +521,7 @@ function animeCard(item){
   const subtype=item.type==='movie'?'movie':'tv';
   const tagSub=subtype==='movie'?'Película':'Serie';
   const k=fk('anime',item.id);
-  const img=item.image?`<img src="${item.image}" alt="${title}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'card-ph\\'></div>'">`:`<div class="card-ph"></div>`;
+  const img=item.image?`<img src="${item.image}" alt="${title}" loading="lazy" decoding="async" onerror="this.parentElement.innerHTML='<div class=\\'card-ph\\'></div>'">`:`<div class="card-ph"></div>`;
   return `<div class="card" tabindex="0" role="button" aria-label="${title}" onclick="openAnimeDetail(${item.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openAnimeDetail(${item.id})}">${img}
     <span class="card-tag">Anime · ${tagSub}</span>
     ${item.score>0?`<span class="card-rating">★ ${Number(item.score).toFixed(1)}</span>`:''}
@@ -548,7 +582,7 @@ function renderCast(cast){
   if(!Array.isArray(cast) || !cast.length){ wrap.classList.add('hidden'); return; }
   wrap.classList.remove('hidden');
   row.innerHTML = cast.slice(0,12).map(p=>{
-    const img = p.profile_path ? `<img src="${IMG3+p.profile_path}" alt="${esc(p.name)}" loading="lazy">` : `<div class="cast-ph">🙂</div>`;
+    const img = p.profile_path ? `<img src="${IMG3+p.profile_path}" alt="${esc(p.name)}" loading="lazy" decoding="async">` : `<div class="cast-ph">🙂</div>`;
     return `<div class="cast-card">${img}<div class="cast-name">${esc(p.name)}</div><div class="cast-role">${esc(p.character||'')}</div></div>`;
   }).join('');
 }
@@ -789,7 +823,7 @@ function renderEps(){
     const p = getProg('tv', pl.id, pl.s, ep.episode_number);
     const hasAV1 = !!(pl.animeSlug && pl.total && ep.episode_number<=pl.total);
     return `<div class="ep-row" onclick="playEp(${ep.episode_number})">
-      <div class="ep-thumb-w">${ep.still_path?`<img src="${IMG5+ep.still_path}" loading="lazy">`:''}</div>
+      <div class="ep-thumb-w">${ep.still_path?`<img src="${IMG5+ep.still_path}" loading="lazy" decoding="async">`:''}</div>
       <div class="ep-info">
         <div class="ep-epname${pl.ep===ep.episode_number?' active':''}">Ep ${ep.episode_number}: ${esc(ep.name||'')} ${hasAV1?'<span class="av1-badge">LATINO</span>':''}</div>
         <div class="ep-desc">${esc(ep.overview||'Sin descripción')}${p&&!w?` · ${Math.round(p.p)}% visto`:''}</div>
@@ -892,7 +926,7 @@ function renderAnimeEpList(){
     list.innerHTML = '<div class="sd-no-results">No se encontraron episodios en AnimeAV1.</div>';
     return;
   }
-  const thumb = pl.poster ? `<img src="${pl.poster}" loading="lazy" onerror="this.style.display='none'">` : '';
+  const thumb = pl.poster ? `<img src="${pl.poster}" loading="lazy" decoding="async" onerror="this.style.display='none'">` : '';
   list.innerHTML = pl.animeEpisodes.map(ep=>{
     const w = isW('anime', pl.id, 1, ep.number);
     return `<div class="ep-row${pl.ep===ep.number?' playing':''}" onclick="playAnimeEp(${ep.number})">
