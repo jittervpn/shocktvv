@@ -706,9 +706,13 @@ let plyLastUrl='';
 // permiso — solo hacía falta mientras había una fuente rota metida
 // (ya la sacamos).
 const PLY_SANDBOX='allow-scripts allow-same-origin allow-forms allow-presentation allow-pointer-lock allow-fullscreen';
-function setPlyFrame(url){
+function setPlyFrame(url, useSandbox=true){
   const f=$('ply-frame'); if(!f) return;
-  f.setAttribute('sandbox', PLY_SANDBOX);
+  // El sandbox bloquea las pestañas de publicidad de Unlimplay/AnimeAV1,
+  // pero fuentes como Cinetoons o Latino Stream lo detectan y se niegan
+  // a reproducir si está presente — por eso a esas se les saca del todo.
+  if(useSandbox) f.setAttribute('sandbox', PLY_SANDBOX);
+  else f.removeAttribute('sandbox');
   show('ply-loading');
   f.onload = () => hide('ply-loading');
   plyLastUrl=url; f.src=url;
@@ -955,11 +959,11 @@ function openSrcModal(){
       : `tmdb_id=${pl.id}&type=tv&s=${pl.anime?1:pl.s}&e=${pl.ep}`;
     items.push({
       label:'Cinetoons 1', tag:'ALTERNO', active: pl.srcIdx===-2, cls:'ct-srv ct-srv-1',
-      run: ()=>{ pl.srcIdx=-2; setPlyFrame(`${CT_BASE}?${ctParams}&srv=1`); toast('Reproduciendo: Cinetoons 1'); }
+      run: ()=>{ pl.srcIdx=-2; setPlyFrame(`${CT_BASE}?${ctParams}&srv=1`, false); toast('Reproduciendo: Cinetoons 1'); }
     });
     items.push({
       label:'Cinetoons 2', tag:'ALTERNO', active: pl.srcIdx===-3, cls:'ct-srv ct-srv-2',
-      run: ()=>{ pl.srcIdx=-3; setPlyFrame(`${CT_BASE}?${ctParams}&srv=2`); toast('Reproduciendo: Cinetoons 2'); }
+      run: ()=>{ pl.srcIdx=-3; setPlyFrame(`${CT_BASE}?${ctParams}&srv=2`, false); toast('Reproduciendo: Cinetoons 2'); }
     });
   }
   {
@@ -972,7 +976,7 @@ function openSrcModal(){
     const lsUrl = `${LS_BASE}?${lsParams.toString()}`;
     items.push({
       label:'Latino Stream', tag:'LATINO', active: pl.srcIdx===-4, cls:'ct-srv ct-srv-1',
-      run: ()=>{ pl.srcIdx=-4; setPlyFrame(lsUrl); toast('Reproduciendo: Latino Stream'); }
+      run: ()=>{ pl.srcIdx=-4; setPlyFrame(lsUrl, false); toast('Reproduciendo: Latino Stream'); }
     });
   }
   list.innerHTML = items.length ? items.map((it,i)=>`
