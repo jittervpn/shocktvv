@@ -718,6 +718,10 @@ function setPlyFrame(url, useSandbox=true){
   plyLastUrl=url; f.src=url;
   hide('ply-placeholder');
 }
+function openPlyInNewTab(){
+  if(!plyLastUrl){ toast('Todavía no hay video cargado'); return; }
+  window.open(plyLastUrl, '_blank', 'noopener,noreferrer');
+}
 function reloadPlyFrame(){
   if(!plyLastUrl){ toast('Nada para recargar'); return; }
   const f=$('ply-frame'); if(!f) return;
