@@ -228,10 +228,12 @@ function kidsFilterItems(items){
 function applyKidsUI(){
   const badge=$('kids-badge'); if(badge) badge.classList.toggle('hidden', !kidsMode);
   const t=$('kids-toggle'); if(t) t.classList.toggle('on', kidsMode);
-  // El catálogo de AnimeAV1 no tiene clasificación por edad, así que en
-  // Modo Niños se oculta la sección de Anime por completo (nav + home).
+  // El catálogo de AnimeAV1 no tiene clasificación por edad, y las
+  // novelas suelen tener contenido romántico/dramático adulto, así que
+  // en Modo Niños se ocultan las dos secciones por completo (nav + home).
   ['nb-anime','bnb-anime'].forEach(id=>{ const el=$(id); if(el) el.style.display = kidsMode?'none':''; });
-  ['row-anime-tv','row-anime-movies'].forEach(id=>{ const el=$(id); if(el) el.style.display = kidsMode?'none':''; });
+  ['nb-novelas','bnb-novelas'].forEach(id=>{ const el=$(id); if(el) el.style.display = kidsMode?'none':''; });
+  ['row-anime-tv','row-anime-movies','row-novelas'].forEach(id=>{ const el=$(id); if(el) el.style.display = kidsMode?'none':''; });
 }
 function toggleKidsMode(){
   if(kidsMode){
@@ -283,13 +285,14 @@ const NM = {
   fav:    ['nb-fav','bnb-fav'],
   movies: ['nb-movies','bnb-movies'],
   tv:     ['nb-tv','bnb-tv'],
+  novelas:['nb-novelas','bnb-novelas'],
   anime:  ['nb-anime','bnb-anime'],
 };
 function setNav(s){
   Object.values(NM).flat().forEach(id => $(id)?.classList.remove('active'));
   (NM[s]||[]).forEach(id => $(id)?.classList.add('active'));
 }
-const SECS = ['home-sections', 'movies-section','tv-section','anime-section','fav-section','search-section'];
+const SECS = ['home-sections', 'movies-section','tv-section','novelas-section','anime-section','fav-section','search-section'];
 function hideAll(){ SECS.forEach(hide); hide('loader-ov'); clearInterval(heroTimer); }
 function goHome(){
   hideAll(); show('home-sections');
@@ -301,6 +304,10 @@ function setSection(sec){
     fav:    () => { show('fav-section'); renderFavs(); },
     movies: () => { show('movies-section'); loadGrid('movies-grid', 'movie'); },
     tv:     () => { show('tv-section'); loadGrid('tv-grid', 'tv'); },
+    novelas:() => {
+      if(kidsMode){ toast('Novelas no disponible en Modo Niños'); goHome(); return; }
+      show('novelas-section'); loadNovelasGrid();
+    },
     anime:  () => {
       if(kidsMode){ toast('Anime no disponible en Modo Niños'); goHome(); return; }
       show('anime-section'); setAnimeTab(animeTab);
@@ -333,6 +340,11 @@ function onSearchInput(){
 // las dos, la de TMDB manda directo a Unlimplay en vez de buscar en
 // AnimeAV1, que es justo lo que no queremos para anime.
 const isLikelyAnimeTmdb = i => (i.genre_ids||[]).includes(16) && i.original_language==='ja';
+// Género 10766 de TMDB = "Soap" (telenovela). Se usa para armar la
+// sección de Novelas y para sacarlas de las listas normales de
+// Películas/Series, igual que se hace con anime.
+const NOVELA_Q = 'with_genres=10766&sort_by=popularity.desc';
+const isLikelyNovela = i => (i.genre_ids||[]).includes(10766);
 
 async function liveSearch(q){
   const myId=++searchReqId;
@@ -382,21 +394,24 @@ async function loadHome(){
   if(!kidsMode){
     calls.push(api(`/discover/tv?language=es-ES&${ANIME_Q}&page=1`).catch(()=>null));
     calls.push(api(`/discover/movie?language=es-ES&${ANIME_Q}&page=1`).catch(()=>null));
+    calls.push(api(`/discover/tv?language=es-ES&${NOVELA_Q}&page=1`).catch(()=>null));
   }
-  const [tm, ttv, mp1, mp2, tvp, anTV1, anMov1] = await Promise.all(calls);
+  const [tm, ttv, mp1, mp2, tvp, anTV1, anMov1, nov1] = await Promise.all(calls);
   const heroPool = kidsFilterItems(tm.results||[]).filter(m=>m.backdrop_path && !isLikelyAnimeTmdb(m));
   hero = heroPool.slice(0,8);
   if(hero.length){ $('hero-section').style.display=''; renderHero(hero[0],'movie'); startHero(); }
   else{ $('hero-section').style.display='none'; }
-  renderSl('s0', kidsFilterItems([...(tm.results||[]).slice(0,10), ...(ttv.results||[]).slice(0,10)]).filter(i=>!isLikelyAnimeTmdb(i)), true);
+  renderSl('s0', kidsFilterItems([...(tm.results||[]).slice(0,10), ...(ttv.results||[]).slice(0,10)]).filter(i=>!isLikelyAnimeTmdb(i) && !isLikelyNovela(i)), true);
   renderSl('s1', kidsFilterItems([...(mp1.results||[]),...(mp2.results||[])]).filter(i=>!isLikelyAnimeTmdb(i)));
-  renderSl('s2', kidsFilterItems(ttv.results||[]).filter(i=>!isLikelyAnimeTmdb(i)), false, true);
+  renderSl('s2', kidsFilterItems(ttv.results||[]).filter(i=>!isLikelyAnimeTmdb(i) && !isLikelyNovela(i)), false, true);
   if(!kidsMode){
-    const s3=$('s3'), s4=$('s4');
+    const s3=$('s3'), s4=$('s4'), s5=$('s5');
     const anTVAll=anTV1?.results||[];
     const anMovAll=anMov1?.results||[];
+    const novAll=nov1?.results||[];
     if(s3) s3.innerHTML = anTVAll.map(i=>card(i,'tv')).join('') || '<p style="color:var(--muted);padding:10px">Sin contenido.</p>';
     if(s4) s4.innerHTML = anMovAll.map(i=>card(i,'movie')).join('') || '<p style="color:var(--muted);padding:10px">Sin contenido.</p>';
+    if(s5) s5.innerHTML = novAll.map(i=>card(i,'tv')).join('') || '<p style="color:var(--muted);padding:10px">Sin contenido.</p>';
   }
   renderContinueRow();
   applyKidsUI();
@@ -468,7 +483,7 @@ function loadGrid(elId, type){
     : `/${type}/popular?language=es-ES`;
   mountInfiniteGrid(el, async(page)=>{
     const r = await api(`${base}&page=${page}`);
-    return kidsFilterItems(r.results||[]).filter(i=>!isLikelyAnimeTmdb(i));
+    return kidsFilterItems(r.results||[]).filter(i=>!isLikelyAnimeTmdb(i) && !(type==='tv' && isLikelyNovela(i)));
   }, i=>card(i,type));
 }
 function loadAnimeGrid(){
@@ -486,6 +501,13 @@ function loadAnimeMoviesGrid(){
     const r = await api(`/discover/movie?${q}&page=${page}`);
     return r.results||[];
   }, i=>card(i,'movie'));
+}
+function loadNovelasGrid(){
+  const el=$('novelas-grid'); if(!el || el.dataset.l) return; el.dataset.l=1;
+  mountInfiniteGrid(el, async(page)=>{
+    const r = await api(`/discover/tv?${NOVELA_Q}&language=es-ES&page=${page}`);
+    return r.results||[];
+  }, i=>card(i,'tv'));
 }
 let animeTab='tv';
 function setAnimeTab(tab){
