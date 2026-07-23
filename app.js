@@ -100,6 +100,13 @@ function updBadge(){
 }
 
 const ek = (t,id,s,ep) => `${t}${id}s${s}e${ep}`;
+// El poster puede llegar como URL completa (AnimeAV1) o como ruta de TMDB
+// ("/abc.jpg"). Si es ruta, hay que anteponerle el CDN de TMDB o el
+// navegador la busca en nuestro propio dominio y tira 404.
+function posterSrc(p){
+  if(!p) return '';
+  return p.startsWith('http') ? p : IMG5 + p;
+}
 function setProg(t,id,s,ep,pct){
   const k=ek(t,id,s,ep);
   if(pct>=95) prog[k]={w:1,p:100}; else if(pct>0) prog[k]={w:0,p:pct}; else delete prog[k];
@@ -889,12 +896,18 @@ async function loadSeasonEps(season){
 }
 function renderEps(){
   const list=$('ep-list'); if(!list || !pl.eps) return;
+  const fallbackUrl = posterSrc(pl.poster);
   list.innerHTML = pl.eps.map(ep=>{
     const w = isW('tv', pl.id, pl.s, ep.episode_number);
     const p = getProg('tv', pl.id, pl.s, ep.episode_number);
     const hasAV1 = !!(pl.animeSlug && pl.total && ep.episode_number<=pl.total);
+    // Muchos episodios (sobre todo de anime) no tienen imagen propia en
+    // TMDB. En vez de dejar el recuadro vacío, usamos el poster de la
+    // serie con el número del episodio encima.
+    const thumbUrl = ep.still_path ? IMG5+ep.still_path : fallbackUrl;
+    const thumbImg = thumbUrl ? `<img src="${thumbUrl}" loading="lazy" decoding="async" onerror="this.style.display='none'">` : '';
     return `<div class="ep-row" onclick="playEp(${ep.episode_number})">
-      <div class="ep-thumb-w">${ep.still_path?`<img src="${IMG5+ep.still_path}" loading="lazy" decoding="async">`:''}</div>
+      <div class="ep-thumb-w">${thumbImg}<span class="ep-thumb-num">${ep.episode_number}</span></div>
       <div class="ep-info">
         <div class="ep-epname${pl.ep===ep.episode_number?' active':''}">Ep ${ep.episode_number}: ${esc(ep.name||'')} ${hasAV1?'<span class="av1-badge">LATINO</span>':''}</div>
         <div class="ep-desc">${esc(ep.overview||'Sin descripción')}${p&&!w?` · ${Math.round(p.p)}% visto`:''}</div>
@@ -997,7 +1010,8 @@ function renderAnimeEpList(){
     list.innerHTML = '<div class="sd-no-results">No se encontraron episodios en AnimeAV1.</div>';
     return;
   }
-  const thumb = pl.poster ? `<img src="${pl.poster}" loading="lazy" decoding="async" onerror="this.style.display='none'">` : '';
+  const thumbUrl = posterSrc(pl.poster);
+  const thumb = thumbUrl ? `<img src="${thumbUrl}" loading="lazy" decoding="async" onerror="this.style.display='none'">` : '';
   list.innerHTML = pl.animeEpisodes.map(ep=>{
     const w = isW('anime', pl.id, 1, ep.number);
     return `<div class="ep-row${pl.ep===ep.number?' playing':''}" onclick="playAnimeEp(${ep.number})">
