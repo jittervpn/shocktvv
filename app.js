@@ -129,9 +129,20 @@ function trackWatching(){
     id: pl.id, type: t, subtype: pl.anime ? pl.type : null,
     title: pl.title, poster: pl.poster || '',
     s: pl.s || 1, ep: pl.ep || 1,
+    total: pl.total || 0,
     updatedAt: Date.now(),
   };
   saveCW();
+}
+// Progreso a nivel de episodio: cuántos episodios de esta temporada
+// ya quedaron marcados como vistos. No podemos saber el minuto exacto
+// dentro del video (vive en un iframe de otro dominio), pero sí cuánto
+// de la serie lleva.
+function progressPct(t, id, s, total){
+  if(!total || total<=0) return 0;
+  let seen=0;
+  for(let i=1;i<=total;i++){ if(isW(t,id,s,i)) seen++; }
+  return Math.round(seen/total*100);
 }
 function removeCW(k, ev){ if(ev) ev.stopPropagation(); delete cw[k]; saveCW(); renderContinueRow(); }
 function renderContinueRow(){
@@ -146,10 +157,12 @@ function renderContinueRow(){
     const resumeCall = c.type==='anime'
       ? `openPlayer('${c.subtype||'tv'}',${c.id},'${c.title.replace(/'/g,"\\'")}',true,'','${(c.poster||'').replace(/'/g,"\\'")}')`
       : `openPlayer('${c.type}',${c.id},'${c.title.replace(/'/g,"\\'")}',false,'','${(c.poster||'').replace(/'/g,"\\'")}')`;
+    const pctRaw = isMovie ? (isW(c.type,c.id,1,1)?100:35) : progressPct(c.type,c.id,c.s,c.total);
+    const pct = Math.max(pctRaw, 4); // mínimo visible
     return `<div class="card cw-card" tabindex="0" role="button" aria-label="${esc(c.title)}" onclick="${resumeCall}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${resumeCall}}">${img}
       <span class="card-tag">${epLabel}</span>
       <button class="cw-x" onclick="removeCW('${k}',event)" title="Quitar" aria-label="Quitar">✕</button>
-      <div class="cw-bar"><div class="cw-bar-fill" style="width:${isMovie?100:60}%"></div></div>
+      <div class="cw-bar"><div class="cw-bar-fill" style="width:${pct}%"></div></div>
     </div>`;
   }).join('');
 }
@@ -414,7 +427,26 @@ async function loadHome(){
     if(s5) s5.innerHTML = novAll.map(i=>card(i,'tv')).join('') || '<p style="color:var(--muted);padding:10px">Sin contenido.</p>';
   }
   renderContinueRow();
+  renderBecauseRow();
   applyKidsUI();
+}
+// "Porque viste X" — usa el último título que el usuario estuvo mirando
+// y pide las recomendaciones de TMDB para ese título.
+async function renderBecauseRow(){
+  const wrap=$('row-because'), sl=$('s-because'), ttl=$('because-title');
+  if(!wrap || !sl) return;
+  const last = Object.values(cw)
+    .filter(c=>c.type==='movie' || c.type==='tv')
+    .sort((a,b)=>b.updatedAt-a.updatedAt)[0];
+  if(!last){ wrap.style.display='none'; return; }
+  try{
+    const r = await api(`/${last.type}/${last.id}/recommendations?language=es-ES&page=1`);
+    const items = kidsFilterItems(r.results||[]).filter(i=>!isLikelyAnimeTmdb(i)).slice(0,20);
+    if(!items.length){ wrap.style.display='none'; return; }
+    if(ttl) ttl.textContent = `Porque viste ${last.title}`;
+    sl.innerHTML = items.map(i=>card(i, last.type)).join('');
+    wrap.style.display='';
+  }catch(e){ wrap.style.display='none'; }
 }
 function renderHero(item, type){
   $('hero-bg').style.backgroundImage = item.backdrop_path?`url(${IMGO+item.backdrop_path})`:'';
@@ -530,11 +562,17 @@ function card(item, type){
   const k=fk(type,item.id);
   const poster=posterPath?IMG5+posterPath:'';
   const img=poster?`<img src="${poster}" alt="${title}" loading="lazy" decoding="async" onerror="this.parentElement.innerHTML='<div class=\\'card-ph\\'></div>'">`:`<div class="card-ph"></div>`;
+  const cwEntry = cw[fk(type,item.id)];
+  const cwPct = cwEntry
+    ? Math.max((type==='movie' ? (isW(type,item.id,1,1)?100:35) : progressPct(type,item.id,cwEntry.s,cwEntry.total)), 4)
+    : 0;
+  const cwBar = cwPct ? `<div class="cw-bar"><div class="cw-bar-fill" style="width:${cwPct}%"></div></div>` : '';
   return `<div class="card" tabindex="0" role="button" aria-label="${title}" onclick="openDetail('${type}',${item.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDetail('${type}',${item.id})}">${img}
     <span class="card-tag">${tag}</span>
     ${rat>0?`<span class="card-rating">★ ${rat.toFixed(1)}</span>`:''}
     <button class="fav-heart${isFav(type,item.id)?' on':''}" data-k="${k}"
       onclick="event.stopPropagation();toggleFav('${type}',${item.id},'${title.replace(/'/g,"\\'")}','${posterPath}',${rat})"></button>
+    ${cwBar}
   </div>`;
 }
 // animeCard(): anime (series y películas) — siempre Jikan/MyAnimeList
@@ -747,7 +785,18 @@ async function openAnimePlayer(subtype, malId, title, origTitle, poster){
 function updPlyBadge(){
   if(pl.anime) $('ply-epbadge').textContent = (pl.type==='tv' && pl.ep) ? `Episodio ${pl.ep}` : '';
   else $('ply-epbadge').textContent = pl.type==='tv' ? `Temporada ${pl.s} · Episodio ${pl.ep}` : '';
-  const nextBtn=$('ply-next-btn'); if(nextBtn) nextBtn.style.display = pl.type==='movie' ? 'none' : '';
+  const nextBtn=$('ply-next-btn'), nextLbl=$('ply-next-lbl');
+  if(nextBtn){
+    if(pl.type==='movie'){ nextBtn.style.display='none'; }
+    else{
+      const nums = pl.anime
+        ? (pl.animeEpisodes||[]).map(e=>e.number)
+        : (pl.eps||[]).map(e=>e.episode_number);
+      const next = nums.sort((a,b)=>a-b).find(n=>n>pl.ep);
+      nextBtn.style.display='';
+      if(nextLbl) nextLbl.textContent = next!=null ? `Ep ${next}` : 'Siguiente';
+    }
+  }
 }
 function loadFrame(){
   if(pl.type==='movie') setPlyFrame(UNL_MOV(pl.id));
@@ -1083,7 +1132,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try{ const r = await fetch(`${API_BASE}/api/token`); if(r.ok){ const d=await r.json(); TOKEN=d.token||''; ANIME_KEY=d.animeKey||ANIME_KEY; } }catch(e){}
   }
   if(!TOKEN){
-    $('main-content').innerHTML='<div style="color:var(--red);padding:40px;text-align:center">⚠️ Token TMDB no encontrado — configurá TMDB_TOKEN en las Variables de Railway</div>';
+    $('main-content').innerHTML='<div style="color:var(--red);padding:40px;text-align:center">⚠️ No se pudo conectar con el servidor. Probá recargar la página en unos segundos.</div>';
     hide('loader-ov'); return;
   }
   await loadHomeWithRetry();

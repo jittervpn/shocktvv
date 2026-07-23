@@ -316,6 +316,8 @@ img{display:block;max-width:100%}
 .cw-x:hover{background:var(--accent);color:#fff}
 .cw-bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.12);z-index:2}
 .cw-bar-fill{height:100%;background:var(--accent)}
+.lpill.next-ep{display:inline-flex;align-items:center;gap:6px;color:var(--accent-2);border-color:rgba(255,255,255,.18)}
+.lpill.next-ep span{font-weight:700;letter-spacing:.2px}
 .fav-heart{
   position:absolute;top:8px;left:8px;width:30px;height:30px;
   border-radius:50%;background:rgba(5,7,15,.72);backdrop-filter:blur(6px);
