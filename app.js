@@ -52,6 +52,42 @@ async function api(p){
     return r.json();
   });
 }
+// ── API multi-proveedor (anime1v-api) ────────────────────────────────
+// Capa opcional: si window.__ANIME_MULTI__ está configurado, se busca
+// en varios proveedores (AnimeAV1, AnimeFLV, TioAnime, JKAnime,
+// MonosChinos). Si no responde o no está configurada, todo sigue
+// funcionando con el scraper de AnimeAV1 que ya tiene tu server.js.
+const AM_BASE = () => (window.__ANIME_MULTI__ || '').replace(/\/+$/,'');
+// HentaiLA queda afuera a propósito: es contenido adulto y el sitio
+// tiene Modo Niños.
+const AM_PROVIDERS = ['animeav1','animeflv','tioanime','monoschinos','jkanime'];
+function amOn(){ return !!AM_BASE(); }
+async function multiAPI(path, params={}, ms=12000){
+  const qs = new URLSearchParams(params).toString();
+  const r = await fetchRetry(`${AM_BASE()}/api/v1/anime/${path}?${qs}`, {
+    headers:{'x-api-key': window.__ANIME_MULTI_KEY__ || '', accept:'application/json'}
+  }, ms);
+  if(!r.ok) throw new Error(`AnimeMulti ${r.status}`);
+  return r.json();
+}
+// Busca el título en todos los proveedores a la vez y devuelve el
+// primero que traiga resultados, respetando el orden de preferencia.
+async function multiSearch(q){
+  const intentos = AM_PROVIDERS.map(p =>
+    multiAPI('search', {q, domain:p})
+      .then(r => {
+        const res = r?.data?.results || r?.results || [];
+        if(!res.length) throw new Error('vacío');
+        return {provider:p, results:res};
+      })
+  );
+  const hechos = await Promise.allSettled(intentos);
+  for(const p of AM_PROVIDERS){
+    const ok = hechos.find(h => h.status==='fulfilled' && h.value.provider===p);
+    if(ok) return ok.value;
+  }
+  return null;
+}
 async function animeAPI(endpoint, params={}){
   const qs = new URLSearchParams(params).toString();
   const r = await fetchRetry(`${API_BASE}/api/anime/${endpoint}?${qs}`, {headers:{'x-api-key':ANIME_KEY, accept:'application/json'}});
@@ -418,7 +454,7 @@ async function loadHome(){
   }
   const [tm, ttv, mp1, mp2, tvp, anTV1, anMov1, nov1] = await Promise.all(calls);
   const heroPool = kidsFilterItems(tm.results||[]).filter(m=>m.backdrop_path && !isLikelyAnimeTmdb(m));
-  hero = heroPool.slice(0,8);
+  hero = heroPool.slice(0,3);   // 3 destacados, rotando cada 5s
   if(hero.length){ $('hero-section').style.display=''; renderHero(hero[0],'movie'); startHero(); }
   else{ $('hero-section').style.display='none'; }
   renderSl('s0', kidsFilterItems([...(tm.results||[]).slice(0,10), ...(ttv.results||[]).slice(0,10)]).filter(i=>!isLikelyAnimeTmdb(i) && !isLikelyNovela(i)), true);
@@ -435,7 +471,31 @@ async function loadHome(){
   }
   renderContinueRow();
   renderBecauseRow();
+  renderExtraRows();
   applyKidsUI();
+}
+// Filas extra del rediseño. Se cargan aparte y después del contenido
+// principal, para no retrasar lo que el usuario ve primero.
+async function renderExtraRows(){
+  if(kidsMode) return;
+  const hoy = new Date().toISOString().slice(0,10);
+  const bloques = [
+    // [id del slider, id de la fila, promesa, tipo]
+    ['s-estrenos','row-estrenos', api('/movie/now_playing?language=es-ES&region=AR&page=1').catch(()=>null), 'movie'],
+    ['s-kdrama','row-kdrama', api('/discover/tv?language=es-ES&with_origin_country=KR&sort_by=popularity.desc&page=1').catch(()=>null), 'tv'],
+    ['s-recientes','row-recientes', api(`/discover/movie?language=es-ES&sort_by=primary_release_date.desc&primary_release_date.lte=${hoy}&vote_count.gte=40&page=1`).catch(()=>null), 'movie'],
+    ['s-solo','row-solo', api('/movie/top_rated?language=es-ES&page=1').catch(()=>null), 'movie'],
+  ];
+  for(const [slId, rowId, prom, tipo] of bloques){
+    const sl=$(slId), row=$(rowId);
+    if(!sl || !row) continue;
+    try{
+      const r = await prom;
+      const items = kidsFilterItems(r?.results||[]).filter(i=>!isLikelyAnimeTmdb(i));
+      if(items.length){ sl.innerHTML = items.map(i=>card(i,tipo)).join(''); row.style.display=''; }
+      else row.style.display='none';
+    }catch(e){ row.style.display='none'; }
+  }
 }
 // "Porque viste X" — usa el último título que el usuario estuvo mirando
 // y pide las recomendaciones de TMDB para ese título.
@@ -462,10 +522,22 @@ function renderHero(item, type){
   $('hero-meta').innerHTML = `<span class="star">★ ${(item.vote_average||0).toFixed(1)}</span><span>${(item.release_date||item.first_air_date||'').slice(0,4)}</span>`;
   $('hero-play').onclick=()=>openPlayer(type,item.id,item.title||item.name,false,'',item.poster_path||'');
   $('hero-info').onclick=()=>openDetail(type,item.id);
+  // Botón "Mi Lista +" — agrega o saca de favoritos el destacado actual.
+  const hl=$('hero-list');
+  if(hl){
+    const fav = isFav(type,item.id);
+    hl.classList.toggle('on', fav);
+    hl.querySelector('.hl-txt').textContent = fav ? 'En Mi Lista' : 'Mi Lista';
+    hl.querySelector('.hl-ic').textContent = fav ? '✓' : '+';
+    hl.onclick=()=>{
+      toggleFav(type,item.id,item.title||item.name,item.poster_path||'',item.vote_average||0);
+      renderHero(item,type);
+    };
+  }
 }
 function startHero(){
   clearInterval(heroTimer);
-  heroTimer=setInterval(()=>{ heroIdx=(heroIdx+1)%hero.length; renderHero(hero[heroIdx],'movie'); }, 7000);
+  heroTimer=setInterval(()=>{ heroIdx=(heroIdx+1)%hero.length; renderHero(hero[heroIdx],'movie'); }, 5000);
 }
 function renderSl(id, items, mixed=false, isTV=false){
   const el=$(id); if(!el) return;
@@ -574,11 +646,24 @@ function card(item, type){
     ? Math.max((type==='movie' ? (isW(type,item.id,1,1)?100:35) : progressPct(type,item.id,cwEntry.s,cwEntry.total)), 4)
     : 0;
   const cwBar = cwPct ? `<div class="cw-bar"><div class="cw-bar-fill" style="width:${cwPct}%"></div></div>` : '';
+  // Panel que aparece al pasar el mouse: sinopsis corta + acciones rápidas.
+  const ov = esc((item.overview||'').slice(0,150)) + ((item.overview||'').length>150?'…':'');
+  const tSafe = title.replace(/'/g,"\\'");
+  const hov = `<div class="card-hov">
+    ${ov?`<p class="card-hov-ov">${ov}</p>`:''}
+    <div class="card-hov-acts">
+      <button class="chv chv-play" title="Ver ahora" aria-label="Ver ahora"
+        onclick="event.stopPropagation();openPlayer('${type}',${item.id},'${tSafe}',false,'','${posterPath}')">▶</button>
+      <button class="chv" title="Más información" aria-label="Más información"
+        onclick="event.stopPropagation();openDetail('${type}',${item.id})">ⓘ</button>
+    </div>
+  </div>`;
   return `<div class="card" tabindex="0" role="button" aria-label="${title}" onclick="openDetail('${type}',${item.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDetail('${type}',${item.id})}">${img}
     <span class="card-tag">${tag}</span>
     ${rat>0?`<span class="card-rating">★ ${rat.toFixed(1)}</span>`:''}
     <button class="fav-heart${isFav(type,item.id)?' on':''}" data-k="${k}"
-      onclick="event.stopPropagation();toggleFav('${type}',${item.id},'${title.replace(/'/g,"\\'")}','${posterPath}',${rat})"></button>
+      onclick="event.stopPropagation();toggleFav('${type}',${item.id},'${tSafe}','${posterPath}',${rat})"></button>
+    ${hov}
     ${cwBar}
   </div>`;
 }
@@ -756,7 +841,7 @@ async function openPlayer(type, id, title, isAnime=false, origTitle='', poster='
 // (ver openSrcModal). Unlimplay se deja afuera para anime a propósito.
 async function openAnimePlayer(subtype, malId, title, origTitle, poster){
   hide('mod-ov'); show('loader-ov');
-  pl = {type:subtype, id:malId, title, s:1, ep:1, anime:true, total:0, animeSlug:'', servers:[], srcIdx:0, animeEpisodes:[], poster:poster||''};
+  pl = {type:subtype, id:malId, title, s:1, ep:1, anime:true, total:0, animeSlug:'', animeProvider:'', animeUrl:'', servers:[], srcIdx:0, animeEpisodes:[], poster:poster||''};
   startWatchingPing('anime', malId, title);
   $('ply-title').textContent = title;
   updPlyBadge();
@@ -954,6 +1039,42 @@ function playNextEpisode(){
 // ── AnimeAV1 (streaming) — usado tanto por el flujo de anime como fuente
 //    de "otra fuente" para películas/series regulares no aplica más acá ──
 async function findAnimeOnly(titleEs, titleEn){
+  // 1) Primero probamos la API multi-proveedor, si está configurada.
+  if(amOn()){
+    try{
+      let hit=null;
+      for(const q of [titleEs, titleEn]){
+        if(!q) continue;
+        hit = await multiSearch(q);
+        if(hit) break;
+      }
+      if(hit){
+        const first = hit.results[0];
+        pl.animeProvider = hit.provider;
+        pl.animeSlug = first.slug || '';
+        pl.animeUrl = first.url || '';
+        const info = await multiAPI('info', {url: pl.animeUrl});
+        const eps = info?.data?.episodes || info?.episodes || [];
+        // Normalizamos: el reproductor espera {number, title, url}
+        pl.animeEpisodes = eps.map((e,i)=>({
+          number: e.number ?? e.episode ?? (i+1),
+          title: e.title || '',
+          url: e.url || e.link || ''
+        })).sort((a,b)=>a.number-b.number);
+        pl.total = pl.animeEpisodes.length;
+        if(pl.total>0){
+          if(pl.type==='movie') await loadAnimeEp(1);
+          toast(`✅ Encontrado en ${hit.provider}`);
+          renderAnimeEpList();
+          return;
+        }
+      }
+    }catch(e){
+      console.warn('[AnimeMulti] falló, uso AnimeAV1:', e.message);
+    }
+  }
+  // 2) Fallback: el scraper de AnimeAV1 que ya tenías.
+  pl.animeProvider = '';
   try{
     let results=[];
     for(const q of [titleEs, titleEn]){
@@ -971,7 +1092,7 @@ async function findAnimeOnly(titleEs, titleEn){
       }
     }
     if(!results.length){
-      toast('No se encontró en AnimeAV1');
+      toast('No se encontró en ningún proveedor');
       renderAnimeEpList();
       return;
     }
@@ -984,11 +1105,39 @@ async function findAnimeOnly(titleEs, titleEn){
     renderAnimeEpList();
   }catch(e){
     console.warn('[AnimeAV1] Error buscando:', e.message);
-    toast('AnimeAV1 no disponible ahora mismo');
+    toast('El servicio de anime no está disponible ahora mismo');
     renderAnimeEpList();
   }
 }
 async function loadAnimeEp(epNum){
+  // Camino multi-proveedor: el episodio trae su propia URL.
+  if(amOn() && pl.animeProvider){
+    const ep = (pl.animeEpisodes||[]).find(e=>e.number===epNum);
+    if(ep && ep.url){
+      try{
+        const data = await multiAPI('episode', {url: ep.url, includeMega:'false'}, 20000);
+        const servers = data?.data?.servers || data?.servers || {};
+        // La API puede devolver {sub:[],dub:[]} o una lista plana.
+        let all = [];
+        if(Array.isArray(servers)){
+          all = servers.map(s=>({...s, kind: /lat|dub|esp/i.test(s.lang||s.variant||'') ? 'dub' : 'sub'}));
+        }else{
+          all = [
+            ...((servers.dub||[]).map(s=>({...s,kind:'dub'}))),
+            ...((servers.sub||[]).map(s=>({...s,kind:'sub'}))),
+          ];
+        }
+        all = all.filter(s => s.url||s.link||s.embed||s.embedUrl||s.src);
+        if(all.length){
+          pl.servers = all; pl.srcIdx = 0;
+          const f = all[0];
+          const url = f.url||f.link||f.embed||f.embedUrl||f.src||'';
+          if(url){ setPlyFrame(url, false); hide('ply-placeholder'); return true; }
+        }
+      }catch(e){ console.warn('[AnimeMulti ep] Error:', e.message); }
+    }
+  }
+  // Camino original (AnimeAV1 vía tu server.js)
   if(!pl.animeSlug) return false;
   try{
     const data = await animeAPI('episode', {slug: pl.animeSlug, number: epNum});
@@ -1012,12 +1161,14 @@ function renderAnimeEpList(){
   }
   const thumbUrl = posterSrc(pl.poster);
   const thumb = thumbUrl ? `<img src="${thumbUrl}" loading="lazy" decoding="async" onerror="this.style.display='none'">` : '';
+  // Mostramos de qué proveedor salieron los episodios.
+  const provLabel = pl.animeProvider ? pl.animeProvider.toUpperCase() : 'LATINO';
   list.innerHTML = pl.animeEpisodes.map(ep=>{
     const w = isW('anime', pl.id, 1, ep.number);
     return `<div class="ep-row${pl.ep===ep.number?' playing':''}" onclick="playAnimeEp(${ep.number})">
       <div class="ep-thumb-w">${thumb}<span class="ep-thumb-num">${ep.number}</span></div>
       <div class="ep-info">
-        <div class="ep-epname${pl.ep===ep.number?' active':''}">Ep ${ep.number}${ep.title?': '+esc(ep.title):''} <span class="av1-badge">LATINO</span></div>
+        <div class="ep-epname${pl.ep===ep.number?' active':''}">Ep ${ep.number}${ep.title?': '+esc(ep.title):''} <span class="av1-badge">${esc(provLabel)}</span></div>
       </div>
       <button class="ep-mrkbtn${w?' on':''}" onclick="event.stopPropagation();toggleMarkAnime(${ep.number})" title="Marcar visto">✓</button>
     </div>`;

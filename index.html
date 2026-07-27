@@ -9,9 +9,9 @@
 <link rel="preconnect" href="https://image.tmdb.org" crossorigin>
 <link rel="preconnect" href="https://unlimplay.com">
 <link rel="dns-prefetch" href="https://unlimplay.com">
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=26">
-<meta name="theme-color" content="#0b0a0e">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=34">
+<meta name="theme-color" content="#0a0a0a">
 <title>ShockTV — Cine, series y anime en streaming</title>
 <meta name="description" content="Mirá películas, series y anime en ShockTV. Catálogo curado con reproducción instantánea.">
 <meta name="monetag" content="ac619191cf58e3a3e7f4bc817034fab4">
@@ -49,6 +49,10 @@
         oninput="onSearchInput()" onkeydown="if(event.key==='Enter'){hide('search-dropdown');doSearch()}">
       <div class="search-dropdown hidden" id="search-dropdown"></div>
     </div>
+    <button class="nav-ic-btn" id="notif-btn" onclick="openNotifs()" title="Novedades" aria-label="Novedades">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <b class="notif-dot hidden" id="notif-dot"></b>
+    </button>
     <button class="kids-toggle" id="kids-toggle" onclick="toggleKidsMode()" title="Modo Niños: solo contenido apto para chicos">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/></svg>
       <span class="kids-toggle-label">Niños</span>
@@ -66,22 +70,40 @@
       <div class="hero-fade"></div>
       <div class="hero-vignette"></div>
       <div class="hero-content">
-        <p class="hero-eyebrow"><span class="eyebrow-dot"></span>Destacado hoy</p>
+        <div class="hero-badges">
+          <span class="hb hb-accent">TENDENCIA #1</span>
+          <span class="hb hb-glass">HD 4K</span>
+        </div>
         <h1 class="hero-title" id="hero-title"></h1>
         <p class="hero-desc" id="hero-desc"></p>
         <div class="hero-meta" id="hero-meta"></div>
         <div class="hero-btns">
           <button class="btn-primary" id="hero-play">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            Reproducir
+            Ver ahora
           </button>
-          <button class="btn-secondary" id="hero-info">
+          <button class="btn-secondary" id="hero-list">
+            <span class="hl-ic">+</span> <span class="hl-txt">Mi Lista</span>
+          </button>
+          <button class="btn-secondary btn-ghost" id="hero-info">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-            Más información
+            <span class="bi-txt">Info</span>
           </button>
         </div>
       </div>
     </section>
+
+    <!-- Chips de acceso rápido (mismo diseño de la maqueta) -->
+    <div class="chips-row" id="chips-row">
+      <button class="chip active" onclick="chipGo(this,'home')">Todo</button>
+      <button class="chip" onclick="chipGo(this,'#s0')">Tendencias</button>
+      <button class="chip" onclick="chipGo(this,'#row-estrenos')">Estrenos</button>
+      <button class="chip" onclick="chipGo(this,'movies')">Películas</button>
+      <button class="chip" onclick="chipGo(this,'tv')">Series</button>
+      <button class="chip" onclick="chipGo(this,'anime')">Animes</button>
+      <button class="chip" onclick="chipGo(this,'novelas')">Novelas</button>
+      <button class="chip" onclick="chipGo(this,'#row-kdrama')">K-Dramas</button>
+    </div>
 
     <section class="row" id="row-continue" style="display:none"><h2 class="row-title">Continuar viendo</h2>
       <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s-continue',-1)" aria-label="Anterior">‹</button><div class="sl" id="s-continue"></div><button class="sl-btn r" onclick="slide('s-continue',1)" aria-label="Siguiente">›</button></div>
@@ -92,19 +114,31 @@
     <section class="row"><h2 class="row-title">Tendencias de la semana</h2>
       <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s0',-1)" aria-label="Anterior">‹</button><div class="sl" id="s0"></div><button class="sl-btn r" onclick="slide('s0',1)" aria-label="Siguiente">›</button></div>
     </section>
-    <section class="row"><h2 class="row-title">Películas populares</h2>
+    <section class="row"><div class="row-head"><h2 class="row-title">Películas populares</h2><button class="row-more" onclick="setSection('movies')">Ver todas <span>›</span></button></div>
       <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s1',-1)">‹</button><div class="sl" id="s1"></div><button class="sl-btn r" onclick="slide('s1',1)">›</button></div>
     </section>
-    <section class="row"><h2 class="row-title">Series destacadas</h2>
+    <section class="row"><div class="row-head"><h2 class="row-title">Series destacadas</h2><button class="row-more" onclick="setSection('tv')">Ver todas <span>›</span></button></div>
       <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s2',-1)">‹</button><div class="sl" id="s2"></div><button class="sl-btn r" onclick="slide('s2',1)">›</button></div>
     </section>
-    <section class="row" id="row-novelas"><h2 class="row-title">Novelas</h2>
+    <section class="row" id="row-estrenos" style="display:none"><div class="row-head"><h2 class="row-title">Estrenos</h2></div>
+      <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s-estrenos',-1)" aria-label="Anterior">‹</button><div class="sl" id="s-estrenos"></div><button class="sl-btn r" onclick="slide('s-estrenos',1)" aria-label="Siguiente">›</button></div>
+    </section>
+    <section class="row" id="row-recientes" style="display:none"><div class="row-head"><h2 class="row-title">Agregados recientemente</h2></div>
+      <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s-recientes',-1)" aria-label="Anterior">‹</button><div class="sl" id="s-recientes"></div><button class="sl-btn r" onclick="slide('s-recientes',1)" aria-label="Siguiente">›</button></div>
+    </section>
+    <section class="row" id="row-kdrama" style="display:none"><div class="row-head"><h2 class="row-title">K-Dramas</h2></div>
+      <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s-kdrama',-1)" aria-label="Anterior">‹</button><div class="sl" id="s-kdrama"></div><button class="sl-btn r" onclick="slide('s-kdrama',1)" aria-label="Siguiente">›</button></div>
+    </section>
+    <section class="row" id="row-solo" style="display:none"><div class="row-head"><h2 class="row-title">Solo en ShockTV</h2></div>
+      <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s-solo',-1)" aria-label="Anterior">‹</button><div class="sl" id="s-solo"></div><button class="sl-btn r" onclick="slide('s-solo',1)" aria-label="Siguiente">›</button></div>
+    </section>
+    <section class="row" id="row-novelas"><div class="row-head"><h2 class="row-title">Novelas</h2><button class="row-more" onclick="setSection('novelas')">Ver todas <span>›</span></button></div>
       <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s5',-1)">‹</button><div class="sl" id="s5"></div><button class="sl-btn r" onclick="slide('s5',1)">›</button></div>
     </section>
-    <section class="row" id="row-anime-tv"><h2 class="row-title">Anime — Series</h2>
+    <section class="row" id="row-anime-tv"><div class="row-head"><h2 class="row-title">Anime — Series</h2><button class="row-more" onclick="setSection('anime')">Ver todas <span>›</span></button></div>
       <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s3',-1)">‹</button><div class="sl" id="s3"></div><button class="sl-btn r" onclick="slide('s3',1)">›</button></div>
     </section>
-    <section class="row" id="row-anime-movies"><h2 class="row-title">Anime — Películas</h2>
+    <section class="row" id="row-anime-movies"><div class="row-head"><h2 class="row-title">Anime — Películas</h2><button class="row-more" onclick="setSection('anime')">Ver todas <span>›</span></button></div>
       <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s4',-1)">‹</button><div class="sl" id="s4"></div><button class="sl-btn r" onclick="slide('s4',1)">›</button></div>
     </section>
   </div>
@@ -233,28 +267,24 @@
 
 <nav class="bottom-nav" id="bottom-nav">
   <button class="bn-btn active" id="bnb-home" onclick="goHome()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></svg>
     <span>Inicio</span>
   </button>
   <button class="bn-btn" id="bnb-movies" onclick="setSection('movies')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 8h18M8 3v5M16 3v5M3 16h18M8 16v5M16 16v5"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4v16M16 4v16M3 8h5M3 12h18M3 16h5M16 8h5M16 16h5"/></svg>
     <span>Películas</span>
   </button>
   <button class="bn-btn" id="bnb-tv" onclick="setSection('tv')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M8 21h8M12 19v2M7 6l3-3M17 6l-3-3"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="13" rx="2"/><path d="M9 21h6"/><path d="M12 18v3"/></svg>
     <span>Series</span>
   </button>
-  <button class="bn-btn" id="bnb-novelas" onclick="setSection('novelas')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2c1 3-2 4-2 7a4 4 0 0 0 8 0c0-1.5-1-2.5-1.5-3 .5 2-1 3-2 3 1-2-1-3-1-5-1 1-2 2-1.5 3-1.5-1-1-3 0-5z"/><path d="M8 15a4 4 0 0 0 8 0"/></svg>
-    <span>Novelas</span>
-  </button>
   <button class="bn-btn" id="bnb-anime" onclick="setSection('anime')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16M6 5v-1.5M18 5v-1.5M12 5v15M7 10c0 4 2.5 6 5 6s5-2 5-6"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.5 6.2L21 11l-6.5 1.8L12 19l-2.5-6.2L3 11l6.5-1.8z"/></svg>
     <span>Anime</span>
   </button>
   <button class="bn-btn" id="bnb-fav" onclick="setSection('fav')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-10-9.3C.5 8 2.3 4.5 6 4.5c2 0 3.5 1 4 2.5.5-1.5 2-2.5 4-2.5 3.7 0 5.5 3.5 4 7.2C19.5 16.4 12 21 12 21z"/></svg>
-    <span>Mi lista</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6"/></svg>
+    <span>Perfil</span>
     <b class="bn-fav-badge hidden" id="bnb-fav-count"></b>
   </button>
 </nav>
@@ -274,8 +304,60 @@
   </div>
 </div>
 
-<script src="config.js?v=28"></script>
-<script src="app.js?v=28"></script>
-<script src="fluid.js?v=2"></script>
+<script src="config.js?v=33"></script>
+<script src="app.js?v=33"></script>
+<script src="fluid.js?v=3"></script>
+<!-- Chips de acceso rápido. Va acá y no en app.js para no tocar tu código. -->
+<script>
+function chipGo(el, dest){
+  document.querySelectorAll('#chips-row .chip').forEach(function(c){ c.classList.remove('active'); });
+  el.classList.add('active');
+  if(dest.charAt(0) === '#'){
+    // Ancla: volvemos al inicio y bajamos suave hasta la fila.
+    goHome();
+    setTimeout(function(){
+      var t = document.querySelector(dest);
+      if(t) window.scrollTo({top: t.offsetTop - 110, behavior:'smooth'});
+    }, 90);
+    return;
+  }
+  if(dest === 'home') goHome(); else setSection(dest);
+}
+// Campanita: no hay sistema de notificaciones por push, así que lleva
+// a los estrenos, que son las novedades reales del catálogo.
+function openNotifs(){
+  var dot = document.getElementById('notif-dot');
+  if(dot) dot.classList.add('hidden');
+  goHome();
+  setTimeout(function(){
+    var t = document.getElementById('row-estrenos');
+    if(t && t.style.display !== 'none'){
+      window.scrollTo({top: t.offsetTop - 110, behavior:'smooth'});
+    }
+    if(typeof toast === 'function') toast('Mirá los últimos estrenos');
+  }, 120);
+}
+// Punto naranja en la campanita una vez por día.
+document.addEventListener('DOMContentLoaded', function(){
+  try{
+    var hoy = new Date().toDateString();
+    if(localStorage.getItem('stv_notif_seen') !== hoy){
+      var d = document.getElementById('notif-dot');
+      if(d) d.classList.remove('hidden');
+      localStorage.setItem('stv_notif_seen', hoy);
+    }
+  }catch(e){}
+});
+// Si el usuario navega por el menú de abajo, el chip "Todo" vuelve a quedar activo.
+document.addEventListener('DOMContentLoaded', function(){
+  var row = document.getElementById('chips-row');
+  if(!row) return;
+  document.querySelectorAll('.bn-btn, .nav-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      row.querySelectorAll('.chip').forEach(function(c){ c.classList.remove('active'); });
+    });
+  });
+});
+</script>
 </body>
 </html>
