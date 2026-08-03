@@ -3,361 +3,1040 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<meta name="theme-color" content="#0a0a0a">
+<meta name="monetag" content="ac619191cf58e3a3e7f4bc817034fab4">
+<title>ShockTV — Cine, series y anime</title>
+<meta name="description" content="Mirá películas, series y anime en ShockTV. Rápido y liviano.">
 <link rel="preconnect" href="https://api.themoviedb.org">
 <link rel="preconnect" href="https://image.tmdb.org" crossorigin>
-<link rel="preconnect" href="https://unlimplay.com">
 <link rel="dns-prefetch" href="https://unlimplay.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=34">
-<meta name="theme-color" content="#0a0a0a">
-<title>ShockTV — Cine, series y anime en streaming</title>
-<meta name="description" content="Mirá películas, series y anime en ShockTV. Catálogo curado con reproducción instantánea.">
-<meta name="monetag" content="ac619191cf58e3a3e7f4bc817034fab4">
-<script>(function(s){s.dataset.zone='11369871',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5047047508633424" crossorigin="anonymous"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,700;0,800;1,900&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,700;0,800;1,900&display=swap"></noscript>
+<!-- Config del sitio (mismo archivo de siempre). Debe cargar ANTES del script principal. -->
+<script src="config.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   ShockTV — hoja de estilo nueva. Optimizada para gama baja:
+   sin blur/backdrop-filter, sombras mínimas, fuentes del sistema,
+   content-visibility en las filas, imágenes lazy. Un solo color de
+   acento controla toda la identidad → variable --accent.
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#0a0a0a;            /* fondo (igual que tu sitio) */
+  --bg-soft:#141414;
+  --card:#191919;
+  --line:#282828;
+  --txt:#f4f4f4;
+  --muted:#9b9b9b;
+  --accent:#FF6A00;        /* Naranja ámbar de tu marca (tomado de tu style.css). */
+  --accent-2:#fbbf24;      /* dorado, para estrellas y detalles */
+  --accent-ink:#ffffff;
+  --radius:12px;
+  --font-display:'Kanit',system-ui,sans-serif;
+  --nav-h:56px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg);color:var(--txt);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:15px;line-height:1.45;
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  overscroll-behavior-y:none;
+}
+img{display:block;max-width:100%}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+a{color:inherit;text-decoration:none}
+.hidden{display:none !important}
+
+/* ── Barra superior ── */
+.top{
+  position:sticky;top:0;z-index:40;background:var(--bg);
+  display:flex;align-items:center;gap:12px;
+  padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;
+  border-bottom:1px solid var(--line);
+}
+.logo{
+  font-family:var(--font-display);font-weight:900;font-style:italic;
+  font-size:23px;letter-spacing:.5px;text-transform:uppercase;line-height:1;
+  color:#fff;transform:skewX(-6deg);padding:2px 1px;
+  text-shadow:
+    1px 1px 0 #d15600, 2px 2px 0 #b84b00, 3px 3px 0 #9c3f00,
+    4px 4px 0 #7d3200, 5px 5px 0 #5c2500, 6px 7px 9px rgba(0,0,0,.6);
+}
+.logo b{
+  color:var(--accent);font-weight:900;
+  text-shadow:
+    1px 1px 0 #7d3200, 2px 2px 0 #5c2500, 3px 3px 0 #431a00,
+    4px 4px 0 #2e1200, 5px 5px 0 #1c0b00, 6px 7px 9px rgba(0,0,0,.6);
+}
+.top-sp{flex:1}
+.online{display:inline-flex;align-items:center;gap:5px;margin-left:10px;font-size:12px;color:var(--muted);font-weight:600}
+.online b{color:var(--txt);font-weight:700}
+.online-dot{width:7px;height:7px;border-radius:99px;background:#22c55e;box-shadow:0 0 0 0 rgba(34,197,94,.5);animation:live 2s ease-out infinite}
+@keyframes live{0%{box-shadow:0 0 0 0 rgba(34,197,94,.5)}70%{box-shadow:0 0 0 6px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+.ic-btn{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;color:var(--txt);background:var(--bg-soft)}
+.ic-btn:active{background:#222}
+.fav-dot{position:relative}
+.fav-dot b{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;
+  background:var(--accent);color:var(--accent-ink);font-size:10px;font-weight:700;display:grid;place-items:center}
+
+/* ── Chips de sección ── */
+.tabs{display:flex;gap:8px;overflow-x:auto;padding:12px 16px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{white-space:nowrap;padding:8px 14px;border-radius:99px;background:var(--bg-soft);color:var(--muted);font-weight:600;font-size:14px;border:1px solid transparent}
+.tab.on{background:var(--txt);color:#000;border-color:var(--txt)}
+
+/* ── Spotlight (reemplaza el hero pesado) ── */
+.spot{margin:4px 16px 20px;border-radius:16px;overflow:hidden;background:var(--card);border:1px solid var(--line);
+  display:grid;grid-template-columns:112px 1fr}
+.spot-img{aspect-ratio:2/3;width:112px;height:100%;object-fit:cover;background:var(--bg-soft)}
+.spot-body{padding:14px 14px 14px 14px;display:flex;flex-direction:column;min-width:0}
+.spot-kick{font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--accent);text-transform:uppercase}
+.spot-title{font-family:var(--font-display);font-size:20px;font-weight:800;letter-spacing:-.01em;margin:6px 0 4px;line-height:1.1;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.spot-meta{font-size:12px;color:var(--muted);margin-bottom:8px}
+.spot-desc{font-size:13px;color:#c9c9c9;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;flex:1}
+.spot-btn{margin-top:12px;align-self:flex-start;background:var(--accent);color:var(--accent-ink);
+  font-weight:700;font-size:14px;padding:9px 18px;border-radius:10px;display:inline-flex;align-items:center;gap:7px}
+.spot-btn:active{filter:brightness(.9)}
+
+/* ── Filas horizontales ── */
+.row{margin:0 0 22px}
+.row-head{display:flex;align-items:baseline;justify-content:space-between;padding:0 16px 10px}
+.row-title{font-family:var(--font-display);font-size:17px;font-weight:700;letter-spacing:0}
+.row-more{font-size:13px;color:var(--muted);font-weight:600}
+.row-scroll{
+  display:flex;gap:10px;overflow-x:auto;padding:0 16px 2px;
+  scroll-snap-type:x proximity;scrollbar-width:none;
+  content-visibility:auto;contain-intrinsic-size:auto 240px;
+}
+.row-scroll::-webkit-scrollbar{display:none}
+
+/* ── Tarjeta de póster ── */
+.card{flex:0 0 auto;width:128px;scroll-snap-align:start}
+.card-img{width:128px;aspect-ratio:2/3;border-radius:var(--radius);object-fit:cover;background:var(--bg-soft);border:1px solid var(--line)}
+.card:active .card-img{filter:brightness(.85)}
+.card-t{font-family:var(--font-display);font-weight:700;font-size:12.5px;color:#d7d7d7;margin-top:6px;line-height:1.2;letter-spacing:.1px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* ── Grilla (secciones y Mi lista) ── */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:4px 16px 24px}
+@media(min-width:520px){.grid{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:760px){.grid{grid-template-columns:repeat(6,1fr)}}
+.grid .card,.grid .card-img{width:100%}
+.section-h{padding:6px 16px 2px;font-family:var(--font-display);font-size:22px;font-weight:800;letter-spacing:-.01em}
+.section-sub{padding:0 16px 12px;color:var(--muted);font-size:13px}
+.load-more{display:block;margin:8px auto 28px;padding:11px 22px;border-radius:10px;background:var(--bg-soft);
+  border:1px solid var(--line);color:var(--txt);font-weight:600}
+.empty{padding:60px 24px;text-align:center;color:var(--muted)}
+.empty svg{opacity:.5;margin-bottom:12px}
+
+/* ── Skeletons ── */
+.sk{background:linear-gradient(90deg,#161616,#1f1f1f,#161616);border-radius:var(--radius);aspect-ratio:2/3}
+
+/* ── Buscador (overlay) ── */
+.search-ov{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column}
+.search-bar{display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;border-bottom:1px solid var(--line)}
+.search-bar input{flex:1;background:var(--bg-soft);border:1px solid var(--line);border-radius:10px;
+  padding:11px 14px;color:var(--txt);font-size:15px;outline:none}
+.search-bar input:focus{border-color:var(--accent)}
+.search-close{color:var(--muted);font-weight:600;padding:8px}
+.search-results{flex:1;overflow-y:auto}
+
+/* ── Ficha (bottom sheet) ── */
+.sheet-ov{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.6);display:flex;align-items:flex-end}
+.sheet{background:var(--bg-soft);width:100%;max-height:88vh;overflow-y:auto;border-radius:18px 18px 0 0;border-top:1px solid var(--line)}
+.sheet-hero{position:relative}
+.sheet-back{width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--card)}
+.sheet-grad{position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,var(--bg-soft))}
+.sheet-x{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:99px;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;font-size:18px}
+.sheet-body{padding:0 18px 24px;margin-top:-40px;position:relative}
+.sheet-title{font-family:var(--font-display);font-size:24px;font-weight:800;letter-spacing:-.01em;line-height:1.1}
+.sheet-meta{color:var(--muted);font-size:13px;margin:8px 0 14px;display:flex;flex-wrap:wrap;gap:6px 12px}
+.sheet-meta .star{color:var(--accent-2);font-weight:700}
+.sheet-actions{display:flex;gap:10px;margin-bottom:16px}
+.btn-play{flex:1;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:15px;padding:13px;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-play:active{filter:brightness(.9)}
+.btn-list{width:52px;border:1px solid var(--line);border-radius:11px;background:var(--card);display:grid;place-items:center;color:var(--txt)}
+.btn-list.on{color:var(--accent);border-color:var(--accent)}
+.sheet-desc{font-size:14px;color:#d3d3d3;margin-bottom:18px}
+.sheet-sec-t{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px}
+.cast{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
+.cast::-webkit-scrollbar{display:none}
+.cast-p{flex:0 0 auto;width:66px;text-align:center}
+.cast-p img{width:66px;height:66px;border-radius:99px;object-fit:cover;background:var(--card)}
+.cast-p span{display:block;font-size:11px;color:#bdbdbd;margin-top:6px;line-height:1.2}
+
+/* ── Reproductor ── */
+.ply-ov{position:fixed;inset:0;z-index:80;background:#000;display:flex;flex-direction:column}
+.ply-top{display:flex;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top) + 8px) 14px 8px;background:#000}
+.ply-title{font-size:15px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ply-badge{font-size:12px;color:var(--accent);font-weight:700}
+.ply-x{width:34px;height:34px;border-radius:99px;background:#161616;display:grid;place-items:center;font-size:18px}
+.ply-frame-wrap{position:relative;width:100%;aspect-ratio:16/9;background:#000}
+.ply-frame-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.ply-frame-wrap:fullscreen,.ply-frame-wrap:-webkit-full-screen{width:100vw;height:100vh;aspect-ratio:auto;background:#000}
+.ply-frame-wrap:fullscreen iframe,.ply-frame-wrap:-webkit-full-screen iframe{width:100%;height:100%}
+.ply-load{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:13px}
+.ply-ph{padding:40px 24px;text-align:center;color:var(--muted)}
+.ply-ph .btn-play{max-width:220px;margin:16px auto 0}
+.ply-tools{display:flex;gap:5px;padding:10px}
+.ply-tool{flex:1;min-width:0;background:#141414;border:1px solid #222;border-radius:10px;padding:8px 2px;font-size:10px;font-weight:600;color:#ddd;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.ply-tool svg{width:18px;height:18px}
+.ply-tool:active{background:#1d1d1d}
+/* Panel de fuentes */
+.src-modal-ov{position:fixed;inset:0;z-index:85;background:rgba(0,0,0,.62);display:flex;align-items:flex-end}
+.src-modal{background:var(--bg-soft);width:100%;max-height:72vh;overflow-y:auto;border-radius:18px 18px 0 0;border-top:1px solid var(--line);padding-bottom:calc(env(safe-area-inset-bottom) + 14px)}
+.src-modal-h{display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg-soft);padding:16px 18px 10px;font-family:var(--font-display);font-weight:800;font-size:18px}
+.src-modal-h button{color:var(--muted);font-size:20px;line-height:1}
+.src-modal-list{display:flex;flex-direction:column;gap:8px;padding:2px 14px}
+.src-item{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:12px;background:var(--card);border:1px solid var(--line)}
+.src-item:active{background:#222}
+.src-item.on{border-color:var(--accent)}
+.src-item .si-play{width:32px;height:32px;flex:0 0 auto;border-radius:8px;background:#1c1c1c;display:grid;place-items:center;color:var(--accent);font-size:12px}
+.src-item.on .si-play{background:var(--accent);color:var(--accent-ink)}
+.src-item .si-name{flex:1;min-width:0;font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src-item .si-tag{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.03em;flex:0 0 auto}
+.src-item.on .si-tag{color:var(--accent)}
+.eps-wrap{flex:1;overflow-y:auto;padding:14px}
+.eps-h{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+/* Selector de temporada: un solo botón (no ocupa espacio con muchas temp.) */
+.season-select{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;padding:12px 14px;margin-bottom:14px;border-radius:12px;
+  background:#141414;border:1px solid #222;color:var(--txt);font-size:14px;font-weight:700;text-align:left}
+.season-select:active{background:#1a1a1a}
+.season-select svg{flex:0 0 auto;color:var(--muted)}
+.season-modal-ov{position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.62);display:flex;align-items:flex-end}
+.season-modal{background:var(--bg-soft);width:100%;max-height:70vh;overflow-y:auto;border-radius:18px 18px 0 0;
+  border-top:1px solid var(--line);padding-bottom:calc(env(safe-area-inset-bottom) + 14px)}
+.season-modal-h{display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;
+  background:var(--bg-soft);padding:16px 18px 10px;font-family:var(--font-display);font-weight:800;font-size:18px}
+.season-modal-h button{color:var(--muted);font-size:20px;line-height:1}
+.season-modal-list{display:flex;flex-direction:column;gap:8px;padding:2px 14px}
+.season-item{display:flex;align-items:center;justify-content:space-between;width:100%;padding:13px 14px;
+  border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:14px;font-weight:600;color:#ddd}
+.season-item:active{background:#222}
+.season-item.on{border-color:var(--accent);color:var(--accent)}
+.season-item svg{flex:0 0 auto;color:var(--accent)}
+.ep-list{display:flex;flex-direction:column;gap:8px}
+.ep{display:flex;gap:12px;align-items:center;padding:10px;border-radius:11px;background:#111;border:1px solid #1e1e1e}
+.ep.on{border-color:var(--accent)}
+.ep-num{width:34px;height:34px;flex:0 0 auto;border-radius:8px;background:#1c1c1c;display:grid;place-items:center;font-weight:700;font-size:14px;color:var(--accent)}
+.ep-info{min-width:0;flex:1}
+.ep-name{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ep-ov{font-size:12px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+/* Barra de "visto" por episodio */
+.ep-bar{height:4px;border-radius:99px;background:#41191a;overflow:hidden;margin-top:8px}
+.ep-bar-fill{height:100%;width:0%;background:var(--accent);border-radius:99px;transition:width .3s ease}
+
+/* ── Nav inferior ── */
+.bnav{position:fixed;left:0;right:0;bottom:0;z-index:50;height:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  padding-bottom:env(safe-area-inset-bottom);background:var(--bg);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(4,1fr)}
+.bnav-b{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);font-size:10px;font-weight:600}
+.bnav-b.on{color:var(--accent)}
+.bnav-b svg{width:22px;height:22px}
+
+/* ── Toast + loader ── */
+.toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 18px);transform:translateX(-50%);z-index:90;
+  background:#1e1e1e;border:1px solid var(--line);color:#fff;padding:11px 18px;border-radius:99px;font-size:13px;font-weight:600}
+.boot{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;gap:16px;align-items:center;justify-content:center;padding:24px;text-align:center}
+.boot .logo{font-size:30px;animation:pulse 1.2s ease-in-out infinite}
+.boot-msg{color:var(--muted);font-size:13px;font-weight:600;max-width:300px;line-height:1.4}
+@keyframes pulse{50%{opacity:.4}}
+@media(prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
 </head>
 <body>
 
-<!-- LOADER -->
-<div class="loader-ov" id="loader-ov">
-  <div class="loader-box">
-    <div class="loader-logo">Shock<span>TV</span></div>
-    <div class="loader-bar"><div class="loader-fill"></div></div>
-  </div>
-</div>
+<!-- Arranque -->
+<div class="boot" id="boot"><div class="logo">Shock<b>TV</b></div><div class="boot-msg" id="boot-msg">Conectando…</div></div>
 
-<!-- NAVBAR -->
-<header class="navbar" id="navbar">
-  <div class="nav-inner">
-    <div class="nav-logo" onclick="goHome()">Shock<span>TV</span></div>
-    <span class="online-badge" id="online-badge" title="Usuarios conectados en este momento (en vivo, no simulado)">
-      <span class="dot"></span><b id="online-count">…</b><span class="online-label" id="online-label"></span>
-    </span>
-    <nav class="nav-links">
-      <button class="nav-btn active" id="nb-home"   onclick="goHome()">Inicio</button>
-      <button class="nav-btn"        id="nb-movies" onclick="setSection('movies')">Películas</button>
-      <button class="nav-btn"        id="nb-tv"     onclick="setSection('tv')">Series</button>
-      <button class="nav-btn"        id="nb-novelas" onclick="setSection('novelas')">Novelas</button>
-      <button class="nav-btn"        id="nb-anime"  onclick="setSection('anime')">Anime</button>
-      <button class="nav-btn"        id="nb-fav"    onclick="setSection('fav')">Mi lista <b class="fav-badge" id="fav-count"></b></button>
-    </nav>
-    <div class="nav-search">
-      <svg class="nav-search-ic-l" onclick="doSearch()" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" id="search-input" placeholder="Buscar título, género o año" autocomplete="off"
-        oninput="onSearchInput()" onkeydown="if(event.key==='Enter'){hide('search-dropdown');doSearch()}">
-      <div class="search-dropdown hidden" id="search-dropdown"></div>
-    </div>
-    <button class="nav-ic-btn" id="notif-btn" onclick="openNotifs()" title="Novedades" aria-label="Novedades">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-      <b class="notif-dot hidden" id="notif-dot"></b>
-    </button>
-    <button class="kids-toggle" id="kids-toggle" onclick="toggleKidsMode()" title="Modo Niños: solo contenido apto para chicos">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/></svg>
-      <span class="kids-toggle-label">Niños</span>
-    </button>
-  </div>
-  <span class="kids-badge hidden" id="kids-badge">● MODO NIÑOS</span>
+<!-- Barra superior -->
+<header class="top">
+  <div class="logo" onclick="go('home')">Shock<b>TV</b></div>
+  <span class="online" id="online" title="Usuarios conectados ahora (real, no simulado)">
+    <span class="online-dot"></span><b id="online-count">…</b><span id="online-label"></span>
+  </span>
+  <div class="top-sp"></div>
+  <button class="ic-btn" onclick="openSearch()" aria-label="Buscar">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+  </button>
+  <button class="ic-btn fav-dot" onclick="go('fav')" aria-label="Mi lista">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+    <b id="fav-badge" class="hidden">0</b>
+  </button>
 </header>
 
-<main class="main" id="main-content">
-
-  <!-- HOME -->
-  <div id="home-sections">
-    <section class="hero" id="hero-section">
-      <div class="hero-bg" id="hero-bg"></div>
-      <div class="hero-fade"></div>
-      <div class="hero-vignette"></div>
-      <div class="hero-content">
-        <div class="hero-badges">
-          <span class="hb hb-accent">TENDENCIA #1</span>
-          <span class="hb hb-glass">HD 4K</span>
-        </div>
-        <h1 class="hero-title" id="hero-title"></h1>
-        <p class="hero-desc" id="hero-desc"></p>
-        <div class="hero-meta" id="hero-meta"></div>
-        <div class="hero-btns">
-          <button class="btn-primary" id="hero-play">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            Ver ahora
-          </button>
-          <button class="btn-secondary" id="hero-list">
-            <span class="hl-ic">+</span> <span class="hl-txt">Mi Lista</span>
-          </button>
-          <button class="btn-secondary btn-ghost" id="hero-info">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-            <span class="bi-txt">Info</span>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Chips de acceso rápido (mismo diseño de la maqueta) -->
-    <div class="chips-row" id="chips-row">
-      <button class="chip active" onclick="chipGo(this,'home')">Todo</button>
-      <button class="chip" onclick="chipGo(this,'#s0')">Tendencias</button>
-      <button class="chip" onclick="chipGo(this,'#row-estrenos')">Estrenos</button>
-      <button class="chip" onclick="chipGo(this,'movies')">Películas</button>
-      <button class="chip" onclick="chipGo(this,'tv')">Series</button>
-      <button class="chip" onclick="chipGo(this,'anime')">Animes</button>
-      <button class="chip" onclick="chipGo(this,'novelas')">Novelas</button>
-      <button class="chip" onclick="chipGo(this,'#row-kdrama')">K-Dramas</button>
-    </div>
-
-    <section class="row" id="row-continue" style="display:none"><h2 class="row-title">Continuar viendo</h2>
-      <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s-continue',-1)" aria-label="Anterior">‹</button><div class="sl" id="s-continue"></div><button class="sl-btn r" onclick="slide('s-continue',1)" aria-label="Siguiente">›</button></div>
-    </section>
-    <section class="row" id="row-because" style="display:none"><h2 class="row-title" id="because-title">Porque viste</h2>
-      <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s-because',-1)" aria-label="Anterior">‹</button><div class="sl" id="s-because"></div><button class="sl-btn r" onclick="slide('s-because',1)" aria-label="Siguiente">›</button></div>
-    </section>
-    <section class="row"><h2 class="row-title">Tendencias de la semana</h2>
-      <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s0',-1)" aria-label="Anterior">‹</button><div class="sl" id="s0"></div><button class="sl-btn r" onclick="slide('s0',1)" aria-label="Siguiente">›</button></div>
-    </section>
-    <section class="row"><div class="row-head"><h2 class="row-title">Películas populares</h2><button class="row-more" onclick="setSection('movies')">Ver todas <span>›</span></button></div>
-      <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s1',-1)">‹</button><div class="sl" id="s1"></div><button class="sl-btn r" onclick="slide('s1',1)">›</button></div>
-    </section>
-    <section class="row"><div class="row-head"><h2 class="row-title">Series destacadas</h2><button class="row-more" onclick="setSection('tv')">Ver todas <span>›</span></button></div>
-      <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s2',-1)">‹</button><div class="sl" id="s2"></div><button class="sl-btn r" onclick="slide('s2',1)">›</button></div>
-    </section>
-    <section class="row" id="row-estrenos" style="display:none"><div class="row-head"><h2 class="row-title">Estrenos</h2></div>
-      <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s-estrenos',-1)" aria-label="Anterior">‹</button><div class="sl" id="s-estrenos"></div><button class="sl-btn r" onclick="slide('s-estrenos',1)" aria-label="Siguiente">›</button></div>
-    </section>
-    <section class="row" id="row-recientes" style="display:none"><div class="row-head"><h2 class="row-title">Agregados recientemente</h2></div>
-      <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s-recientes',-1)" aria-label="Anterior">‹</button><div class="sl" id="s-recientes"></div><button class="sl-btn r" onclick="slide('s-recientes',1)" aria-label="Siguiente">›</button></div>
-    </section>
-    <section class="row" id="row-kdrama" style="display:none"><div class="row-head"><h2 class="row-title">K-Dramas</h2></div>
-      <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s-kdrama',-1)" aria-label="Anterior">‹</button><div class="sl" id="s-kdrama"></div><button class="sl-btn r" onclick="slide('s-kdrama',1)" aria-label="Siguiente">›</button></div>
-    </section>
-    <section class="row" id="row-solo" style="display:none"><div class="row-head"><h2 class="row-title">Solo en ShockTV</h2></div>
-      <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s-solo',-1)" aria-label="Anterior">‹</button><div class="sl" id="s-solo"></div><button class="sl-btn r" onclick="slide('s-solo',1)" aria-label="Siguiente">›</button></div>
-    </section>
-    <section class="row" id="row-novelas"><div class="row-head"><h2 class="row-title">Novelas</h2><button class="row-more" onclick="setSection('novelas')">Ver todas <span>›</span></button></div>
-      <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s5',-1)">‹</button><div class="sl" id="s5"></div><button class="sl-btn r" onclick="slide('s5',1)">›</button></div>
-    </section>
-    <section class="row" id="row-anime-tv"><div class="row-head"><h2 class="row-title">Anime — Series</h2><button class="row-more" onclick="setSection('anime')">Ver todas <span>›</span></button></div>
-      <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s3',-1)">‹</button><div class="sl" id="s3"></div><button class="sl-btn r" onclick="slide('s3',1)">›</button></div>
-    </section>
-    <section class="row" id="row-anime-movies"><div class="row-head"><h2 class="row-title">Anime — Películas</h2><button class="row-more" onclick="setSection('anime')">Ver todas <span>›</span></button></div>
-      <div class="sl-wrap"><button class="sl-btn l" onclick="slide('s4',-1)">‹</button><div class="sl" id="s4"></div><button class="sl-btn r" onclick="slide('s4',1)">›</button></div>
-    </section>
-  </div>
-
-  <!-- SECCIONES -->
-  <div id="movies-section" class="pg hidden"><h2 class="pg-title">Películas</h2><p class="pg-sub">Estrenos y clásicos, seleccionados a diario.</p><div class="grid" id="movies-grid"></div></div>
-  <div id="tv-section"     class="pg hidden"><h2 class="pg-title">Series</h2><p class="pg-sub">Las historias que todos están mirando.</p><div class="grid" id="tv-grid"></div></div>
-  <div id="novelas-section" class="pg hidden"><h2 class="pg-title">Novelas</h2><p class="pg-sub">Melodrama, romance y giros inesperados.</p><div class="grid" id="novelas-grid"></div></div>
-  <div id="anime-section"  class="pg hidden">
-    <h2 class="pg-title">Anime</h2>
-    <p class="pg-sub">Catálogo con audio y subtítulos en latino.</p>
-    <div class="tab-switch">
-      <button class="tab-btn active" id="atab-tv" onclick="setAnimeTab('tv')">Series</button>
-      <button class="tab-btn" id="atab-movie" onclick="setAnimeTab('movie')">Películas</button>
-    </div>
-    <div class="grid" id="anime-grid"></div>
-    <div class="grid hidden" id="anime-movies-grid"></div>
-  </div>
-  <div id="fav-section"    class="pg hidden"><h2 class="pg-title">Mi lista</h2><p class="pg-sub">Los títulos que guardaste para más tarde.</p><div class="grid" id="fav-grid"></div></div>
-  <div id="search-section" class="pg hidden"><h2 class="pg-title" id="search-title"></h2><div class="grid" id="search-results"></div></div>
-
-  <footer class="footer">
-    <div class="footer-inner">
-      <div class="footer-logo">Shock<span>TV</span></div>
-      <p>Datos provistos por TMDB. ShockTV no aloja contenido — enlaza a reproductores públicos de terceros.</p>
-      <p class="footer-copy">© 2026 ShockTV · build v21</p>
-    </div>
-  </footer>
-</main>
-
-<!-- MODAL DE DETALLE -->
-<div class="mod-ov hidden" id="mod-ov" onclick="closeMod(event)">
-  <div class="mod" id="mod">
-    <div class="mod-back" id="mod-back">
-      <button class="mod-x" onclick="closeMod()" aria-label="Cerrar">✕</button>
-      <div class="mod-back-ov">
-        <h2 class="mod-title" id="mod-title"></h2>
-        <div class="mod-meta" id="mod-meta"></div>
-      </div>
-    </div>
-    <div class="mod-body">
-      <div class="mod-tags" id="mod-tags"></div>
-      <p class="mod-syn" id="mod-syn"></p>
-      <button class="mod-syn-more hidden" id="mod-syn-more" onclick="toggleSyn()">Ver sinopsis completa</button>
-      <div class="mod-acts" id="mod-acts"></div>
-      <div class="mod-cast hidden" id="mod-cast-wrap">
-        <h3 class="mod-sub-title">Reparto</h3>
-        <div class="mod-cast-row" id="mod-cast"></div>
-      </div>
-      <div class="mod-rec hidden" id="mod-rec-wrap">
-        <h3 class="mod-sub-title">También te puede gustar</h3>
-        <div class="mod-rec-row" id="mod-rec"></div>
-      </div>
-    </div>
-  </div>
+<!-- Chips de sección -->
+<div class="tabs" id="tabs">
+  <button class="tab on" data-sec="home"   onclick="go('home')">Inicio</button>
+  <button class="tab"     data-sec="movie"  onclick="go('movie')">Películas</button>
+  <button class="tab"     data-sec="tv"     onclick="go('tv')">Series</button>
+  <button class="tab"     data-sec="anime"  onclick="go('anime')">Anime</button>
+  <button class="tab"     data-sec="fav"    onclick="go('fav')">Mi lista</button>
 </div>
 
-<!-- REPRODUCTOR -->
-<div class="ply-ov hidden" id="ply-ov">
-  <div class="ply-box">
-    <div class="ply-bar">
-      <div class="ply-bar-top">
-        <button class="ply-back" onclick="closePly()" aria-label="Volver">‹</button>
-        <div class="ply-info"><span class="ply-title" id="ply-title"></span><span class="ply-epbadge" id="ply-epbadge"></span></div>
-        <button class="ply-x" onclick="closePly()" title="Cerrar" aria-label="Cerrar">✕</button>
-      </div>
-      <div class="ply-bar-acts">
-        <button class="lpill" onclick="openSrcModal()" title="Cambiar fuente si no carga">Cambiar fuente</button>
-        <button class="lpill icon-only" onclick="openPlyInNewTab()" title="Abrir en pestaña nueva (si tu navegador bloquea el video)" aria-label="Abrir en pestaña nueva">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        </button>
-        <button class="lpill next-ep" id="ply-next-btn" onclick="playNextEpisode()" title="Siguiente episodio" aria-label="Siguiente episodio">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
-          <span id="ply-next-lbl">Siguiente</span>
-        </button>
-        <button class="lpill icon-only" onclick="reloadPlyFrame()" title="Recargar" aria-label="Recargar">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.3-6.4"/><polyline points="17.5 3.5 18 8 13.5 8.5"/><path d="M21 12a9 9 0 0 1-15.3 6.4"/><polyline points="6.5 20.5 6 16 10.5 15.5"/></svg>
-        </button>
-        <button class="lpill icon-only" onclick="toggleFullscreen()" id="ply-fs-btn" title="Pantalla completa" aria-label="Pantalla completa">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-        </button>
-      </div>
-    </div>
-    <div class="ply-frame-w" id="ply-frame-w">
-      <iframe id="ply-frame" allowfullscreen allow="autoplay;encrypted-media;fullscreen;picture-in-picture"></iframe>
-      <div class="ply-loading hidden" id="ply-loading"><div class="ply-spinner"></div></div>
-      <div class="ply-placeholder hidden" id="ply-placeholder">
-        <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M8 21h8M12 19v2"/></svg>
-        <p>Elegí una temporada y un episodio para empezar</p>
-        <button class="ply-ph-btn" onclick="playEp(1)">Reproducir episodio 1</button>
-      </div>
-    </div>
-    <div class="ep-panel hidden" id="ep-panel">
-      <div class="ep-panel-head">
-        <h3>Episodios</h3>
-        <div class="season-select" id="season-select">
-          <button class="season-select-btn" id="season-select-btn" onclick="toggleSeasonDropdown(event)">
-            <span id="season-select-label">Temporada 1</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <div class="season-dropdown hidden" id="season-dropdown"></div>
-        </div>
-      </div>
-      <div class="ep-list" id="ep-list"></div>
-    </div>
-  </div>
-</div>
+<main id="app"></main>
 
-<!-- MODAL "OTRA FUENTE" -->
-<div class="srcmod-ov hidden" id="srcmod-ov" onclick="closeSrcModal(event)">
-  <div class="srcmod">
-    <div class="srcmod-handle"></div>
-    <h3>Seleccionar reproductor</h3>
-    <p class="srcmod-sub">Si un reproductor no carga, probá con otro.</p>
-    <div id="srcmod-list"></div>
-    <button class="srcmod-cancel" onclick="closeSrcModal()">Cancelar</button>
-  </div>
-</div>
+<!-- Nav inferior -->
+<nav class="bnav">
+  <button class="bnav-b on" data-sec="home" onclick="go('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z"/></svg>Inicio</button>
+  <button class="bnav-b" data-sec="tv" onclick="go('tv')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M8 3l4 4 4-4"/></svg>Series</button>
+  <button class="bnav-b" data-sec="anime" onclick="go('anime')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 9l5 3-5 3z"/></svg>Anime</button>
+  <button class="bnav-b" data-sec="fav" onclick="go('fav')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>Mi lista</button>
+</nav>
 
 <div class="toast hidden" id="toast"></div>
 
-<!-- MENÚ INFERIOR (estilo app, solo mobile) -->
-<button class="scroll-top hidden" id="scroll-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Volver arriba" aria-label="Volver arriba">
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-</button>
-
-<nav class="bottom-nav" id="bottom-nav">
-  <button class="bn-btn active" id="bnb-home" onclick="goHome()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></svg>
-    <span>Inicio</span>
-  </button>
-  <button class="bn-btn" id="bnb-movies" onclick="setSection('movies')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4v16M16 4v16M3 8h5M3 12h18M3 16h5M16 8h5M16 16h5"/></svg>
-    <span>Películas</span>
-  </button>
-  <button class="bn-btn" id="bnb-tv" onclick="setSection('tv')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="13" rx="2"/><path d="M9 21h6"/><path d="M12 18v3"/></svg>
-    <span>Series</span>
-  </button>
-  <button class="bn-btn" id="bnb-anime" onclick="setSection('anime')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.5 6.2L21 11l-6.5 1.8L12 19l-2.5-6.2L3 11l6.5-1.8z"/></svg>
-    <span>Anime</span>
-  </button>
-  <button class="bn-btn" id="bnb-fav" onclick="setSection('fav')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6"/></svg>
-    <span>Perfil</span>
-    <b class="bn-fav-badge hidden" id="bnb-fav-count"></b>
-  </button>
-</nav>
-
-<!-- MODAL MODO NIÑOS -->
-<div class="kidsmod-ov hidden" id="kidsmod-ov" onclick="closeKidsModal(event)">
-  <div class="kidsmod">
-    <h3 id="kidsmod-title">Activar Modo Niños</h3>
-    <p class="kidsmod-sub" id="kidsmod-sub">Este modo muestra solo animación y contenido familiar, y oculta el anime (no tiene clasificación por edad).</p>
-    <input class="kidsmod-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" id="kidsmod-pin" placeholder="PIN de 4 dígitos" autocomplete="off"
-      onkeydown="if(event.key==='Enter')confirmKidsModal()">
-    <p class="kidsmod-err hidden" id="kidsmod-err">PIN incorrecto</p>
-    <div class="kidsmod-acts">
-      <button class="kidsmod-cancel" onclick="closeKidsModal()">Cancelar</button>
-      <button class="kidsmod-ok" onclick="confirmKidsModal()">Confirmar</button>
-    </div>
-  </div>
-</div>
-
-<script src="config.js?v=31"></script>
-<script src="app.js?v=32"></script>
-<script src="fluid.js?v=3"></script>
-<!-- Chips de acceso rápido. Va acá y no en app.js para no tocar tu código. -->
 <script>
-function chipGo(el, dest){
-  document.querySelectorAll('#chips-row .chip').forEach(function(c){ c.classList.remove('active'); });
-  el.classList.add('active');
-  if(dest.charAt(0) === '#'){
-    // Ancla: volvemos al inicio y bajamos suave hasta la fila.
-    goHome();
-    setTimeout(function(){
-      var t = document.querySelector(dest);
-      if(t) window.scrollTo({top: t.offsetTop - 110, behavior:'smooth'});
-    }, 90);
-    return;
-  }
-  if(dest === 'home') goHome(); else setSection(dest);
-}
-// Campanita: no hay sistema de notificaciones por push, así que lleva
-// a los estrenos, que son las novedades reales del catálogo.
-function openNotifs(){
-  var dot = document.getElementById('notif-dot');
-  if(dot) dot.classList.add('hidden');
-  goHome();
-  setTimeout(function(){
-    var t = document.getElementById('row-estrenos');
-    if(t && t.style.display !== 'none'){
-      window.scrollTo({top: t.offsetTop - 110, behavior:'smooth'});
-    }
-    if(typeof toast === 'function') toast('Mirá los últimos estrenos');
-  }, 120);
-}
-// Punto naranja en la campanita una vez por día.
-document.addEventListener('DOMContentLoaded', function(){
+/* ═══════════════════════════════════════════════════════════════
+   ShockTV — app.js (nuevo, liviano). Contrato de backend idéntico
+   al sitio anterior: TMDB (token vía /api/token), Unlimplay para
+   película/serie y /api/anime/* (AnimeAV1) para anime.
+   ═══════════════════════════════════════════════════════════════ */
+const API_BASE = (window.__API_BASE__ || "https://shocktvv-1.onrender.com").replace(/\/+$/,"");
+const TMDB = "https://api.themoviedb.org/3";
+const IMG = (p,s)=> p ? (p.startsWith("http")?p:`https://image.tmdb.org/t/p/${s}${p}`) : "";
+const UNL_MOV = id => `https://unlimplay.com/f/embed/movie/${id}`;
+const UNL_TV  = (id,s,e) => `https://unlimplay.com/f/embed/tv/${id}/${s}/${e}`;
+let TOKEN="", ANIME_KEY="";
+
+const $ = s => document.querySelector(s);
+const el = id => document.getElementById(id);
+const esc = s => (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let tt; const toast=(m,d=2200)=>{const t=el("toast");t.textContent=m;t.classList.remove("hidden");clearTimeout(tt);tt=setTimeout(()=>t.classList.add("hidden"),d);};
+
+/* ── fetch con caché + timeout ──────────────────────────────────
+   Caché de dos niveles: memoria (instantánea) + disco (sobrevive al
+   cerrar y reabrir la app). Guarda las respuestas de TMDB por 6 h, así
+   volver al Inicio o reabrir el sitio no vuelve a descargar nada. */
+const CACHE=new Map();
+const CK="stv_c_", CACHE_TTL=6*3600*1000;
+function diskGet(k){
   try{
-    var hoy = new Date().toDateString();
-    if(localStorage.getItem('stv_notif_seen') !== hoy){
-      var d = document.getElementById('notif-dot');
-      if(d) d.classList.remove('hidden');
-      localStorage.setItem('stv_notif_seen', hoy);
+    const raw=localStorage.getItem(CK+k);if(!raw)return null;
+    const o=JSON.parse(raw);
+    if(!o||Date.now()-o.t>CACHE_TTL){localStorage.removeItem(CK+k);return null;}
+    return o.v;
+  }catch(e){return null;}
+}
+function diskSet(k,v){
+  try{localStorage.setItem(CK+k,JSON.stringify({t:Date.now(),v}));}
+  catch(e){pruneCache();try{localStorage.setItem(CK+k,JSON.stringify({t:Date.now(),v}));}catch(e2){}}
+}
+function pruneCache(){ // si se llena el almacenamiento, tira lo más viejo
+  try{
+    const keys=Object.keys(localStorage).filter(k=>k.startsWith(CK));
+    keys.map(k=>{let t=0;try{t=JSON.parse(localStorage.getItem(k)).t||0;}catch(e){}return{k,t};})
+        .sort((a,b)=>a.t-b.t).slice(0,Math.ceil(keys.length/2))
+        .forEach(o=>localStorage.removeItem(o.k));
+  }catch(e){}
+}
+async function fx(url,opts={},ms=9000){
+  const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),ms);
+  try{return await fetch(url,{...opts,signal:ctrl.signal});}finally{clearTimeout(t);}
+}
+async function tmdb(path){
+  if(CACHE.has(path))return CACHE.get(path);
+  const d=diskGet(path);
+  if(d){CACHE.set(path,d);return d;}
+  const r=await fx(TMDB+path,{headers:{accept:"application/json",Authorization:"Bearer "+TOKEN}});
+  if(!r.ok)throw new Error("TMDB "+r.status);
+  const j=await r.json();CACHE.set(path,j);diskSet(path,j);return j;
+}
+async function animeAPI(endpoint,params={}){
+  const qs=new URLSearchParams(params).toString();
+  const r=await fx(`${API_BASE}/api/anime/${endpoint}?${qs}`,{headers:{"x-api-key":ANIME_KEY,accept:"application/json"}});
+  if(!r.ok)throw new Error("Anime "+r.status);
+  return r.json();
+}
+
+/* ── favoritos (misma clave que tu sitio: los guardados se conservan) ── */
+let favs={};
+try{favs=JSON.parse(localStorage.getItem("stv_f")||"{}");}catch(e){favs={};}
+const fk=(t,id)=>`${t}${id}`;
+const isFav=(t,id)=>!!favs[fk(t,id)];
+function toggleFav(item){
+  const k=fk(item.type,item.id);
+  if(favs[k])delete favs[k];
+  else favs[k]={...item,addedAt:Date.now()};
+  try{localStorage.setItem("stv_f",JSON.stringify(favs));}catch(e){}
+  updFavBadge();
+  return !!favs[k];
+}
+function updFavBadge(){const n=Object.keys(favs).length;const b=el("fav-badge");b.textContent=n;b.classList.toggle("hidden",n===0);}
+
+/* ── progreso de "visto" por episodio (series y anime, misma lógica) ──
+   Se guarda el tiempo acumulado viendo cada episodio y se compara contra
+   una duración estimada para pintar la barra en la lista. */
+const PROG_KEY="stv_prog";
+let PROGDB={};
+try{PROGDB=JSON.parse(localStorage.getItem(PROG_KEY)||"{}");}catch(e){PROGDB={};}
+function pruneProg(){
+  const keys=Object.keys(PROGDB);
+  if(keys.length<=250)return;
+  keys.map(k=>({k,t:PROGDB[k].t||0})).sort((a,b)=>a.t-b.t)
+      .slice(0,keys.length-250).forEach(x=>delete PROGDB[x.k]);
+}
+function saveProg(){
+  try{localStorage.setItem(PROG_KEY,JSON.stringify(PROGDB));}
+  catch(e){pruneProg();try{localStorage.setItem(PROG_KEY,JSON.stringify(PROGDB));}catch(e2){}}
+}
+function progKey(type,id,s,ep){return `${type}:${id}:${s||0}:${ep||0}`;}
+function getProgPct(type,id,s,ep){
+  const o=PROGDB[progKey(type,id,s,ep)];
+  if(!o||!o.dur)return 0;
+  return Math.min(100,Math.round((o.sec/o.dur)*100));
+}
+function setProgSec(type,id,s,ep,sec,dur){
+  PROGDB[progKey(type,id,s,ep)]={sec,dur,t:Date.now()};
+  saveProg();
+}
+let progTimer=null;
+function stopProgressTimer(){if(progTimer){clearInterval(progTimer);progTimer=null;}}
+function startProgressTimer(){
+  stopProgressTimer();
+  if(!PL.id||!PL.ep)return;
+  const t=PL.anime?"anime":(PL.type||"tv");
+  const epObj=(PL.eps||[]).find(x=>x.episode_number===PL.ep);
+  const durMin=(epObj&&epObj.runtime)?epObj.runtime:(PL.anime?24:45);
+  const dur=durMin*60;
+  let sec=(PROGDB[progKey(t,PL.id,PL.s,PL.ep)]&&PROGDB[progKey(t,PL.id,PL.s,PL.ep)].sec)||0;
+  progTimer=setInterval(()=>{
+    sec+=10;
+    setProgSec(t,PL.id,PL.s,PL.ep,sec,dur);
+    const pct=Math.min(100,Math.round((sec/dur)*100));
+    const bar=document.querySelector(`.ep[data-ep="${PL.ep}"] .ep-bar-fill`);
+    if(bar)bar.style.width=pct+"%";
+  },10000);
+}
+
+/* ── normalización de items TMDB ── */
+function norm(i){
+  const type=i.media_type||(i.title?"movie":"tv");
+  const isAnime=(i.genre_ids||[]).includes(16)&&i.original_language==="ja";
+  return {
+    id:i.id,type,isAnime,
+    title:i.title||i.name||"",
+    origTitle:i.original_title||i.original_name||"",
+    poster:i.poster_path||"",back:i.backdrop_path||"",
+    rating:i.vote_average?i.vote_average.toFixed(1):"",
+    year:(i.release_date||i.first_air_date||"").slice(0,4),
+    desc:i.overview||""
+  };
+}
+
+/* ═══════════════ VISTAS ═══════════════ */
+let SEC="home";
+function setActive(sec){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.sec===sec));
+  document.querySelectorAll(".bnav-b").forEach(b=>b.classList.toggle("on",b.dataset.sec===sec));
+}
+function go(sec){SEC=sec;setActive(sec);window.scrollTo(0,0);
+  if(sec==="home")renderHome();
+  else if(sec==="fav")renderFav();
+  else renderSection(sec);
+}
+
+const cardHTML=n=>`<div class="card" onclick='openSheet(${JSON.stringify(n).replace(/'/g,"&#39;")})'>
+  <img class="card-img" loading="lazy" decode="async" width="128" height="192" src="${IMG(n.poster,"w342")}" alt="${esc(n.title)}">
+  <div class="card-t">${esc(n.title)}</div></div>`;
+
+function rowHTML(title,id,more){
+  return `<section class="row"><div class="row-head"><h2 class="row-title">${esc(title)}</h2>${more?`<button class="row-more" onclick="go('${more}')">Ver todo ›</button>`:""}</div>
+    <div class="row-scroll" id="${id}">${'<div class="card"><div class="sk"></div></div>'.repeat(6)}</div></section>`;
+}
+async function fillRow(id,path){
+  try{const d=await tmdb(path);const items=(d.results||[]).filter(i=>i.poster_path).map(norm);
+    const c=el(id);if(c)c.innerHTML=items.map(cardHTML).join("");}
+  catch(e){const c=el(id);if(c)c.innerHTML='<div class="empty">No se pudo cargar.</div>';}
+}
+
+async function renderHome(){
+  const app=el("app");
+  app.innerHTML=`<div id="spot"></div>
+    ${rowHTML("Tendencias de la semana","r-trend")}
+    ${rowHTML("Películas populares","r-mov","movie")}
+    ${rowHTML("Series destacadas","r-tv","tv")}
+    ${rowHTML("Anime — lo más visto","r-anime","anime")}
+    ${rowHTML("Mejor valoradas","r-top")}`;
+  fillRow("r-trend","/trending/all/week?language=es-ES");
+  fillRow("r-mov","/movie/popular?language=es-ES&page=1");
+  fillRow("r-tv","/tv/popular?language=es-ES&page=1");
+  fillRow("r-anime","/discover/tv?language=es-ES&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=1");
+  fillRow("r-top","/movie/top_rated?language=es-ES&page=1");
+  // Spotlight desde tendencias
+  try{
+    const d=await tmdb("/trending/all/week?language=es-ES");
+    const pick=(d.results||[]).filter(i=>i.backdrop_path&&i.overview)[0];
+    if(pick){const n=norm(pick);
+      el("spot").innerHTML=`<div class="spot">
+        <img class="spot-img" loading="eager" decode="async" src="${IMG(n.poster,"w342")}" alt="">
+        <div class="spot-body">
+          <span class="spot-kick">Tendencia #1</span>
+          <div class="spot-title">${esc(n.title)}</div>
+          <div class="spot-meta">${n.year||""}${n.rating?" · ★ "+n.rating:""}</div>
+          <div class="spot-desc">${esc(n.desc)}</div>
+          <button class="spot-btn" onclick='openSheet(${JSON.stringify(n).replace(/'/g,"&#39;")})'>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Ver ahora</button>
+        </div></div>`;
     }
   }catch(e){}
-});
-// Si el usuario navega por el menú de abajo, el chip "Todo" vuelve a quedar activo.
-document.addEventListener('DOMContentLoaded', function(){
-  var row = document.getElementById('chips-row');
-  if(!row) return;
-  document.querySelectorAll('.bn-btn, .nav-btn').forEach(function(b){
-    b.addEventListener('click', function(){
-      row.querySelectorAll('.chip').forEach(function(c){ c.classList.remove('active'); });
-    });
+}
+
+/* Secciones paginadas */
+const SEC_CFG={
+  movie:{h:"Películas",sub:"Estrenos y clásicos, actualizados a diario.",path:p=>`/movie/popular?language=es-ES&page=${p}`},
+  tv:{h:"Series",sub:"Las historias que todos están mirando.",path:p=>`/tv/popular?language=es-ES&page=${p}`},
+  anime:{h:"Anime",sub:"Catálogo con audio y subtítulos en latino.",path:p=>`/discover/tv?language=es-ES&with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=${p}`}
+};
+let secPage=1,secItems=[];
+async function renderSection(sec){
+  const cfg=SEC_CFG[sec];secPage=1;secItems=[];
+  el("app").innerHTML=`<h1 class="section-h">${cfg.h}</h1><p class="section-sub">${cfg.sub}</p>
+    <div class="grid" id="sec-grid">${'<div class="card"><div class="sk"></div></div>'.repeat(9)}</div>
+    <button class="load-more hidden" id="sec-more" onclick="moreSection('${sec}')">Cargar más</button>`;
+  await moreSection(sec,true);
+}
+async function moreSection(sec,first){
+  const cfg=SEC_CFG[sec];
+  try{
+    const d=await tmdb(cfg.path(secPage));
+    secItems=secItems.concat((d.results||[]).filter(i=>i.poster_path).map(norm));
+    el("sec-grid").innerHTML=secItems.map(cardHTML).join("");
+    el("sec-more").classList.remove("hidden");
+    secPage++;
+  }catch(e){ if(first)el("sec-grid").innerHTML='<div class="empty">No se pudo cargar.</div>'; }
+}
+
+function renderFav(){
+  const items=Object.values(favs).sort((a,b)=>b.addedAt-a.addedAt);
+  if(!items.length){
+    el("app").innerHTML=`<h1 class="section-h">Mi lista</h1>
+      <div class="empty"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+      <p>Todavía no guardaste nada.<br>Tocá el corazón en cualquier título.</p></div>`;
+    return;
+  }
+  el("app").innerHTML=`<h1 class="section-h">Mi lista</h1><p class="section-sub">Los títulos que guardaste para más tarde.</p>
+    <div class="grid">${items.map(cardHTML).join("")}</div>`;
+}
+
+/* ═══════════════ BUSCADOR ═══════════════ */
+let searchOv,searchT;
+function openSearch(){
+  if(searchOv)return searchOv.remove(),void openSearchReal();
+  openSearchReal();
+}
+function openSearchReal(){
+  const ov=document.createElement("div");ov.className="search-ov";ov.id="search-ov";
+  ov.innerHTML=`<div class="search-bar">
+      <input id="search-in" type="text" placeholder="Buscar película, serie o anime" autocomplete="off">
+      <button class="search-close" onclick="closeSearch()">Cerrar</button></div>
+    <div class="search-results" id="search-res"></div>`;
+  document.body.appendChild(ov);searchOv=ov;
+  const inp=el("search-in");inp.focus();
+  inp.addEventListener("input",()=>{clearTimeout(searchT);searchT=setTimeout(()=>doSearch(inp.value.trim()),260);});
+}
+function closeSearch(){if(searchOv){searchOv.remove();searchOv=null;}}
+async function doSearch(q){
+  const res=el("search-res");if(!q){res.innerHTML="";return;}
+  res.innerHTML=`<div class="grid">${'<div class="card"><div class="sk"></div></div>'.repeat(6)}</div>`;
+  try{
+    const d=await tmdb(`/search/multi?language=es-ES&query=${encodeURIComponent(q)}&page=1`);
+    const items=(d.results||[]).filter(i=>i.media_type!=="person"&&i.poster_path).map(norm);
+    if(!items.length){res.innerHTML='<div class="empty">Sin resultados para “'+esc(q)+'”.</div>';return;}
+    res.innerHTML=`<div class="grid">${items.map(cardHTML).join("")}</div>`;
+  }catch(e){res.innerHTML='<div class="empty">No se pudo buscar. Probá de nuevo.</div>';}
+}
+
+/* ═══════════════ FICHA ═══════════════ */
+async function openSheet(n){
+  closeSearch();
+  const ov=document.createElement("div");ov.className="sheet-ov";ov.id="sheet-ov";
+  ov.onclick=e=>{if(e.target===ov)ov.remove();};
+  ov.innerHTML=`<div class="sheet"><div class="sheet-hero">
+      <img class="sheet-back" loading="eager" src="${IMG(n.back||n.poster,"w780")}" alt="">
+      <div class="sheet-grad"></div><button class="sheet-x" onclick="el('sheet-ov').remove()">✕</button></div>
+    <div class="sheet-body" id="sheet-body"><div class="sheet-title">${esc(n.title)}</div>
+      <div class="empty">Cargando…</div></div></div>`;
+  document.body.appendChild(ov);
+  try{
+    const det=await tmdb(`/${n.type}/${n.id}?language=es-ES&append_to_response=credits`);
+    const genres=(det.genres||[]).map(g=>g.name).slice(0,3).join(" · ");
+    const runtime=det.runtime?`${det.runtime} min`:(det.number_of_seasons?`${det.number_of_seasons} temp.`:"");
+    const cast=(det.credits&&det.credits.cast||[]).slice(0,10);
+    const favOn=isFav(n.type,n.id);
+    el("sheet-body").innerHTML=`
+      <div class="sheet-title">${esc(n.title)}</div>
+      <div class="sheet-meta">
+        ${n.year?`<span>${n.year}</span>`:""}${n.rating?`<span class="star">★ ${n.rating}</span>`:""}
+        ${runtime?`<span>${runtime}</span>`:""}${genres?`<span>${esc(genres)}</span>`:""}
+        ${n.isAnime?`<span class="star">ANIME</span>`:""}</div>
+      <div class="sheet-actions">
+        <button class="btn-play" onclick='playFrom(${JSON.stringify(n).replace(/'/g,"&#39;")})'>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Ver ahora</button>
+        <button class="btn-list ${favOn?"on":""}" id="sheet-fav" onclick='onFav(this,${JSON.stringify(n).replace(/'/g,"&#39;")})' aria-label="Mi lista">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="${favOn?"currentColor":"none"}" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>
+        <button class="btn-list" onclick='shareItem(${JSON.stringify(n).replace(/'/g,"&#39;")})' aria-label="Compartir">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></button>
+      </div>
+      <p class="sheet-desc">${esc(det.overview||n.desc||"Sin descripción disponible.")}</p>
+      ${cast.length?`<h3 class="sheet-sec-t">Reparto</h3><div class="cast">${cast.map(c=>`
+        <div class="cast-p"><img loading="lazy" src="${c.profile_path?IMG(c.profile_path,"w185"):""}" alt=""><span>${esc(c.name)}</span></div>`).join("")}</div>`:""}`;
+  }catch(e){el("sheet-body").innerHTML=`<div class="sheet-title">${esc(n.title)}</div><div class="empty">No se pudo cargar la ficha.</div>`;}
+}
+/* ── Compartir (menú nativo del teléfono, con respaldo a copiar) ── */
+function shareLink(n){
+  const base=location.origin+location.pathname;
+  return `${base}?v=${n.type}-${n.id}`;
+}
+async function shareItem(n){
+  const url=shareLink(n);
+  const text=`Mirá "${n.title}" en ShockTV`;
+  try{
+    if(navigator.share){await navigator.share({title:"ShockTV — "+n.title,text,url});return;}
+  }catch(e){if(e&&e.name==="AbortError")return;}
+  try{
+    await navigator.clipboard.writeText(`${text}: ${url}`);
+    toast("Enlace copiado");
+  }catch(e){
+    const ta=document.createElement("textarea");ta.value=`${text}: ${url}`;
+    ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);
+    ta.select();try{document.execCommand("copy");toast("Enlace copiado");}catch(e2){toast("No se pudo compartir");}
+    ta.remove();
+  }
+}
+function shareCurrent(){
+  if(PL&&PL.id)shareItem(PL);else toast("Nada para compartir");
+}
+/* Abrir directo si llegaron por un enlace compartido (?v=movie-123) */
+async function openShared(){
+  const v=new URLSearchParams(location.search).get("v");
+  if(!v)return;
+  const m=v.match(/^(movie|tv)-(\d+)$/);if(!m)return;
+  try{
+    const det=await tmdb(`/${m[1]}/${m[2]}?language=es-ES`);
+    openSheet(norm({...det,media_type:m[1]}));
+  }catch(e){}
+}
+
+function onFav(btn,n){
+  const on=toggleFav(n);
+  btn.classList.toggle("on",on);
+  btn.querySelector("svg").setAttribute("fill",on?"currentColor":"none");
+  toast(on?"Agregado a Mi lista":"Quitado de Mi lista");
+}
+function playFrom(n){
+  el("sheet-ov")?.remove();
+  if(n.isAnime)openAnimePlayer(n);
+  else openPlayer(n);
+}
+
+/* ═══════════════ REPRODUCTOR (película / serie) ═══════════════ */
+let PL={};
+function playerShell(){
+  const ov=document.createElement("div");ov.className="ply-ov";ov.id="ply-ov";
+  ov.innerHTML=`<div class="ply-top">
+      <button class="ply-x" onclick="closePlayer()">✕</button>
+      <div class="ply-title" id="ply-title"></div><div class="ply-badge" id="ply-badge"></div></div>
+    <div class="ply-frame-wrap" id="ply-wrap"><iframe id="ply-frame" allowfullscreen allow="autoplay; fullscreen; encrypted-media; picture-in-picture" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-fullscreen"></iframe>
+      <div class="ply-load hidden" id="ply-load">Cargando reproductor…</div>
+      <div class="ply-ph hidden" id="ply-ph"></div></div>
+    <div class="ply-tools">
+      <button class="ply-tool" onclick="reloadFrame()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Recargar</button>
+      <button class="ply-tool" onclick="openSources()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>Fuentes</button>
+      <button class="ply-tool" onclick="fsLandscape()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3"/></svg>Pantalla</button>
+      <button class="ply-tool" onclick="shareCurrent()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Compartir</button>
+      <button class="ply-tool" onclick="openExtern()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>Abrir</button></div>
+    <div class="src-modal-ov hidden" id="src-modal" onclick="closeSources(event)">
+      <div class="src-modal">
+        <div class="src-modal-h"><span>Fuentes</span><button onclick="closeSources()" aria-label="Cerrar">✕</button></div>
+        <div class="src-modal-list" id="src-modal-list"></div></div></div>
+    <div class="eps-wrap hidden" id="eps-wrap"></div>`;
+  document.body.appendChild(ov);document.body.style.overflow="hidden";
+}
+function closePlayer(){el("ply-ov")?.remove();document.body.style.overflow="";stopWatchingPing();stopProgressTimer();PL={};}
+let lastUrl="",lastSandbox=true;
+const PLY_SANDBOX="allow-scripts allow-same-origin allow-forms allow-presentation allow-fullscreen";
+// Un .m3u8 puesto directo como src de iframe NO reproduce en Chrome/Firefox/Android
+// (solo Safari soporta HLS nativo). Por eso hay que detectarlo y armar un
+// reproductor real (<video> + hls.js) adentro del iframe, en vez de navegar al link.
+function isHLSUrl(u){return /\.m3u8(\?|#|$)/i.test(u||"");}
+function hlsPlayerDoc(url){
+  return `<!DOCTYPE html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>
+  html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden}
+  video{width:100%;height:100%;object-fit:contain;background:#000;display:block}
+  #msg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;text-align:center;
+    color:#ddd;font:14px/1.4 system-ui,sans-serif;padding:24px;background:#000}
+</style></head><body>
+  <video id="v" controls autoplay playsinline webkit-playsinline></video>
+  <div id="msg"></div>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"><\/script>
+  <script>
+    var video=document.getElementById('v'), msg=document.getElementById('msg');
+    var src=${JSON.stringify(url)};
+    function showMsg(t){video.style.display='none';msg.style.display='flex';msg.textContent=t;}
+    try{
+      if(video.canPlayType('application/vnd.apple.mpegurl')){
+        video.src=src;
+        video.addEventListener('error',function(){showMsg('No se pudo reproducir este video. Probá otra fuente.');});
+      }else if(window.Hls&&Hls.isSupported()){
+        var hls=new Hls({});
+        hls.on(Hls.Events.ERROR,function(ev,data){if(data&&data.fatal)showMsg('No se pudo reproducir este video. Probá otra fuente.');});
+        hls.loadSource(src);hls.attachMedia(video);
+        video.play().catch(function(){});
+      }else{
+        showMsg('Tu navegador no soporta este video. Probá otra fuente.');
+      }
+    }catch(e){showMsg('No se pudo reproducir este video. Probá otra fuente.');}
+  <\/script>
+</body></html>`;
+}
+function setFrame(url,useSandbox=true){
+  lastUrl=url;lastSandbox=useSandbox;const f=el("ply-frame");
+  if(useSandbox)f.setAttribute("sandbox",PLY_SANDBOX);else f.removeAttribute("sandbox");
+  el("ply-load").classList.remove("hidden");el("ply-ph").classList.add("hidden");
+  if(isHLSUrl(url)){
+    f.removeAttribute("src");
+    f.onload=null;
+    f.srcdoc=hlsPlayerDoc(url);
+    // el <video> interno recién carga bien adentro, avisamos que ya está listo:
+    setTimeout(()=>el("ply-load")?.classList.add("hidden"),400);
+  }else{
+    f.removeAttribute("srcdoc");
+    f.onload=()=>el("ply-load").classList.add("hidden");
+    f.src=url;
+  }
+}
+function reloadFrame(){if(lastUrl)setFrame(lastUrl,lastSandbox);}
+function openExtern(){if(lastUrl)window.open(lastUrl,"_blank","noopener");else toast("Todavía no hay video");}
+
+// Fuentes alternas (Cinetoons y Latino Stream). Sirven para peli/serie/anime.
+// OJO: no toleran el sandbox del iframe → van con sandbox:false.
+function altSources(){
+  const s=PL.s||1, e=PL.ep;
+  const ctBase="https://panel.cinetoons.xyz/api/embed.php";
+  const ct=PL.type==="movie"?`${ctBase}?tmdb_id=${PL.id}&type=movie`:`${ctBase}?tmdb_id=${PL.id}&type=tv&s=${s}&e=${e}`;
+  const lsType=PL.anime?"anime":(PL.type==="movie"?"movie":"tv");
+  const lsp=new URLSearchParams({title:PL.title||"",type:lsType});
+  if(lsType!=="movie"){lsp.set("s",String(s));lsp.set("e",String(e));}
+  const ls=`https://latino-stream-finder.lovable.app/api/public/embed?${lsp}`;
+  return [
+    {label:"Cinetoons 1",tag:"ALTERNO",url:`${ct}&srv=1`,sandbox:false},
+    {label:"Cinetoons 2",tag:"ALTERNO",url:`${ct}&srv=2`,sandbox:false},
+    {label:"Latino Stream",tag:"LATINO",url:ls,sandbox:false},
+  ];
+}
+function playSources(){pickSource(0);}
+
+async function openPlayer(n){
+  playerShell();PL={...n,s:1,ep:1};
+  el("ply-title").textContent=n.title;
+  startWatchingPing(n.type,n.id,n.title);
+  if(n.type==="movie"){
+    PL.sources=[{label:"Unlimplay",tag:"PRINCIPAL",url:UNL_MOV(n.id),sandbox:true},...altSources()];
+    playSources();
+  }else{
+    el("ply-badge").textContent="Temporada 1 · Ep 1";
+    el("eps-wrap").classList.remove("hidden");
+    try{
+      const tv=await tmdb(`/tv/${n.id}?language=es-ES`);
+      PL.seasons=(tv.seasons||[]).filter(s=>s.season_number>0);
+      renderSeasons();
+      if(PL.seasons[0])await loadSeason(PL.seasons[0].season_number,true);
+    }catch(e){el("eps-wrap").innerHTML='<div class="empty">No se pudieron cargar los episodios.</div>';}
+  }
+}
+function seasonLabel(num){
+  const s=PL.seasons.find(x=>x.season_number===num);
+  return s&&s.name?s.name:`Temporada ${num}`;
+}
+function renderSeasons(){
+  const w=el("eps-wrap");
+  w.innerHTML=`<button class="season-select" id="season-select-btn" onclick="openSeasonModal()">
+      <span id="season-select-label">${esc(seasonLabel(PL.s))}</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="ep-list" id="ep-list"></div>`;
+}
+function openSeasonModal(){
+  const ov=document.createElement("div");ov.className="season-modal-ov";ov.id="season-modal-ov";
+  ov.onclick=e=>{if(e.target===ov)ov.remove();};
+  ov.innerHTML=`<div class="season-modal">
+    <div class="season-modal-h"><span>Temporadas</span><button onclick="el('season-modal-ov').remove()" aria-label="Cerrar">✕</button></div>
+    <div class="season-modal-list">${PL.seasons.map(s=>`
+      <button class="season-item ${s.season_number===PL.s?"on":""}" onclick="selectSeason(${s.season_number})">
+        <span>${esc(s.name||"Temporada "+s.season_number)}</span>
+        ${s.season_number===PL.s?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>':""}
+      </button>`).join("")}
+    </div></div>`;
+  document.body.appendChild(ov);
+}
+function selectSeason(num){el("season-modal-ov")?.remove();if(num!==PL.s)loadSeason(num);}
+async function loadSeason(num,play){
+  PL.s=num;
+  const lbl=el("season-select-label");if(lbl)lbl.textContent=seasonLabel(num);
+  const list=el("ep-list");list.innerHTML='<div class="empty">Cargando episodios…</div>';
+  try{
+    const d=await tmdb(`/tv/${PL.id}/season/${num}?language=es-ES`);
+    PL.eps=d.episodes||[];
+    const t=PL.anime?"anime":(PL.type||"tv");
+    list.innerHTML=PL.eps.map(e=>{
+      const pct=getProgPct(t,PL.id,num,e.episode_number);
+      return `<div class="ep ${PL.s===num&&PL.ep===e.episode_number?"on":""}" data-ep="${e.episode_number}" onclick="playEp(${e.episode_number})">
+      <div class="ep-num">${e.episode_number}</div>
+      <div class="ep-info"><div class="ep-name">${esc(e.name||"Episodio "+e.episode_number)}</div>
+      <div class="ep-ov">${esc(e.overview||"")}</div>
+      <div class="ep-bar"><div class="ep-bar-fill" style="width:${pct}%"></div></div></div></div>`;
+    }).join("");
+    if(play&&PL.eps[0])playEp(PL.eps[0].episode_number);
+  }catch(e){list.innerHTML='<div class="empty">No se pudo cargar la temporada.</div>';}
+}
+async function playEp(ep){
+  PL.ep=ep;el("ply-badge").textContent=`Temporada ${PL.s} · Ep ${ep}`;
+  document.querySelectorAll(".ep").forEach(x=>x.classList.toggle("on",x.dataset.ep==String(ep)));
+  startProgressTimer();
+  window.scrollTo(0,0);
+  if(PL.anime){
+    el("ply-ph").classList.remove("hidden");el("ply-ph").innerHTML="Buscando fuentes…";el("ply-load").classList.add("hidden");
+    const av1=await animeServersFor(PL.s,ep);      // AnimeAV1 de ESA temporada
+    PL.sources=av1.concat(altSources());           // + Cinetoons/Latino (por TMDB s/e)
+    if(!PL.sources.length){el("ply-ph").innerHTML=`No hay fuentes para el Ep ${ep}.
+      <button class="btn-play" onclick="playEp(${ep})">Reintentar</button>`;return;}
+    el("ply-ph").classList.add("hidden");
+    playSources();
+  }else{
+    PL.sources=[{label:"Unlimplay",tag:"PRINCIPAL",url:UNL_TV(PL.id,PL.s,ep),sandbox:true},...altSources()];
+    playSources();
+  }
+}
+
+/* ═══════════════ REPRODUCTOR (anime, backend AnimeAV1) ═══════════════
+   Estructura anclada en las temporadas de TMDB (igual que las series).
+   Para cada temporada, AnimeAV1 BUSCA su entrada propia (no reproduce la
+   primera que aparece), porque suele tener una entrada distinta por
+   temporada. Cinetoons/Latino usan la temporada/episodio de TMDB. */
+async function openAnimePlayer(n){
+  playerShell();PL={...n,anime:true,s:1,ep:1,animeSlugBySeason:{}};
+  el("ply-title").textContent=n.title;
+  el("ply-badge").textContent="Temporada 1";
+  startWatchingPing("anime",n.id,n.title);
+  el("eps-wrap").classList.remove("hidden");
+  el("eps-wrap").innerHTML='<div class="empty">Cargando temporadas…</div>';
+  try{
+    const tv=await tmdb(`/tv/${n.id}?language=es-ES`);
+    PL.seasons=(tv.seasons||[]).filter(s=>s.season_number>0);
+    if(!PL.seasons.length)PL.seasons=[{season_number:1,name:"Temporada 1"}];
+    renderSeasons();
+    if(PL.seasons[0])await loadSeason(PL.seasons[0].season_number,true);
+  }catch(e){el("eps-wrap").innerHTML='<div class="empty">No se pudieron cargar las temporadas.</div>';}
+}
+// Devuelve las fuentes de AnimeAV1 para (temporada, episodio).
+async function animeServersFor(season,ep){
+  const collect=(arr,tag)=>(Array.isArray(arr)?arr:[]).map(s=>({label:(s.server||s.name||"AnimeAV1"),tag,url:(s.url||s.link||s.embed),sandbox:true})).filter(s=>s.url);
+  try{
+    const res=await resolveAnimeEpisode(season,ep);
+    if(!res)return [];                       // no se pudo emparejar con confianza → alternos
+    const d=await animeAPI("episode",{slug:res.slug,number:res.number});
+    const data=d?.data||{};const srv=data.servers||{};
+    let av1=collect(srv.sub,"SUB").concat(collect(srv.dub,"DUB"));
+    if(!av1.length){const sl=data.streamLinks||{};av1=collect(sl.SUB,"SUB").concat(collect(sl.DUB,"DUB"));}
+    return av1;
+  }catch(e){return [];}
+}
+/* Normalización de títulos para comparar franquicias. */
+function normTitle(s){return (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9\s]/g," ").replace(/\s+/g," ").trim();}
+function franchiseKey(t){
+  const w=normTitle(t).split(" ").filter(x=>x.length>1);
+  if(!w.length)return normTitle(t);
+  return w[0].length>=5?w[0]:w.slice(0,2).join(" ");
+}
+/* Trae TODAS las entradas de la franquicia en AnimeAV1 y las ordena por
+   AÑO (serie antes que película/OVA). Así T1 = la más vieja, T2 = la
+   siguiente, etc. — funciona con secuelas que cambian de nombre. */
+async function loadAnimeFranchise(){
+  if(PL.animeFranchise)return PL.animeFranchise;
+  const seen={},all=[];
+  const q0=PL.title||"";
+  const queries=[q0, q0.split(":")[0].trim(), q0.replace(/\(.*?\)/g,"").trim()];
+  if(PL.origTitle&&/[a-z]/i.test(PL.origTitle))queries.push(PL.origTitle);
+  for(const q of [...new Set(queries.filter(Boolean))]){
+    try{
+      const r=await animeAPI("search",{q});
+      const list=r?.data?.results||r?.results||[];
+      for(const it of (Array.isArray(list)?list:[])){
+        const slug=it.slug||it.id||it.url;if(!slug||seen[slug])continue;seen[slug]=1;
+        all.push({slug,title:it.title||it.name||"",year:parseInt(it.year)||0,type:(it.type||"").toLowerCase()});
+      }
+    }catch(e){}
+    if(all.length>=10)break;
+  }
+  const key=franchiseKey((PL.origTitle&&/[a-z]/i.test(PL.origTitle))?PL.origTitle:PL.title);
+  let fr=all.filter(x=>normTitle(x.title).includes(key));
+  if(!fr.length)fr=all;
+  fr.sort((a,b)=>{
+    const am=/pel|movie|ova|especial|special/.test(a.type)?1:0,bm=/pel|movie|ova|especial|special/.test(b.type)?1:0;
+    if(am!==bm)return am-bm;
+    return (a.year||9999)-(b.year||9999);
   });
+  PL.animeFranchise=fr;PL.franchiseKey=key;
+  return fr;
+}
+function absoluteEp(season,ep){
+  let base=0;for(const s of (PL.seasons||[]))if(s.season_number<season)base+=(s.episode_count||0);
+  return base+ep;
+}
+/* Devuelve {slug, number} para (temporada, episodio) o null si no hay match confiable. */
+async function resolveAnimeEpisode(season,ep){
+  const fr=await loadAnimeFranchise();
+  if(!fr.length)return null;
+  let chosen=null,number=ep;
+  if(fr.length>=season){chosen=fr[season-1];number=ep;}
+  else if(fr.length===1){chosen=fr[0];number=absoluteEp(season,ep);}   // entrada única con numeración continua
+  else{chosen=fr[fr.length-1];number=ep;}
+  if(!chosen)return null;
+  if(PL.franchiseKey&&!normTitle(chosen.title).includes(PL.franchiseKey))return null; // evita cargar otro anime
+  return {slug:chosen.slug,number};
+}
+function openSources(){
+  const list=el("src-modal-list");
+  if(!PL.sources||!PL.sources.length){toast("No hay fuentes disponibles");return;}
+  list.innerHTML=PL.sources.map((s,i)=>`
+    <div class="src-item ${i===PL.srcIdx?"on":""}" onclick="chooseSource(${i})">
+      <div class="si-play">▶</div>
+      <div class="si-name">${esc(s.label)}</div>
+      ${s.tag?`<div class="si-tag">${s.tag}</div>`:""}</div>`).join("");
+  el("src-modal").classList.remove("hidden");
+}
+function closeSources(e){if(e&&e.target!==el("src-modal"))return;el("src-modal")?.classList.add("hidden");}
+function chooseSource(i){pickSource(i);el("src-modal")?.classList.add("hidden");}
+function pickSource(i){
+  if(!PL.sources||!PL.sources[i])return;
+  PL.srcIdx=i;
+  setFrame(PL.sources[i].url, PL.sources[i].sandbox!==false);
+}
+/* Pantalla completa horizontal: pone el video "de lado" sin depender del
+   giro automático del teléfono. Usa Fullscreen API + bloqueo de orientación. */
+function fsLandscape(){
+  const wrap=el("ply-wrap");if(!wrap)return;
+  const req=wrap.requestFullscreen||wrap.webkitRequestFullscreen||wrap.webkitEnterFullscreen;
+  const lock=()=>{try{screen.orientation?.lock?.("landscape").catch(()=>{});}catch(e){}};
+  if(!req){toast("Tu navegador no permite pantalla completa");return;}
+  try{
+    const p=req.call(wrap);
+    if(p&&p.then)p.then(lock).catch(lock);else lock();
+  }catch(e){toast("No se pudo abrir en pantalla completa");}
+}
+document.addEventListener("fullscreenchange",()=>{
+  if(!document.fullscreenElement){try{screen.orientation?.unlock?.();}catch(e){}}
 });
+
+/* ═══════════════ VISITANTES EN VIVO (real: pings de cada pestaña) ═══════════════ */
+function getSID(){let id=sessionStorage.getItem("stv_sid");
+  if(!id){id="sid_"+Date.now().toString(36)+Math.random().toString(36).slice(2,10);sessionStorage.setItem("stv_sid",id);}return id;}
+const SID=getSID();let currentWatching=null;
+async function pingPresence(){try{
+  await fetch(`${API_BASE}/api/presence/ping`,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({sessionId:SID,watching:currentWatching})});
+}catch(e){}}
+async function fetchStats(){try{
+  const r=await fetch(`${API_BASE}/api/presence/stats`);const d=await r.json();
+  const c=el("online-count"),l=el("online-label");
+  if(c&&d?.data){c.textContent=d.data.online;if(l)l.textContent=" "+(d.data.online===1?"conectado":"conectados");}
+}catch(e){}}
+function startPresence(){
+  pingPresence();setInterval(pingPresence,15000);
+  fetchStats();setInterval(fetchStats,20000);
+  window.addEventListener("beforeunload",()=>{try{
+    navigator.sendBeacon?.(`${API_BASE}/api/presence/leave`,new Blob([JSON.stringify({sessionId:SID})],{type:"application/json"}));
+  }catch(e){}});
+}
+function startWatchingPing(type,id,title){currentWatching={type,id,title};pingPresence();}
+function stopWatchingPing(){currentWatching=null;pingPresence();}
+
+/* ═══════════════ PUBLICIDAD (Monetag + Google) ═══════════════
+   Se inyecta DESPUÉS del primer render para no frenar el arranque en
+   teléfonos de gama baja. La monetización queda igual que antes. */
+let adsDone=false;
+function injectAds(){
+  if(adsDone)return;adsDone=true;
+  try{ // Monetag vignette
+    const s=document.createElement("script");s.dataset.zone="11369871";s.src="https://n6wxm.com/vignette.min.js";
+    document.body.appendChild(s);
+  }catch(e){}
+  try{ // Google AdSense (auto ads)
+    const g=document.createElement("script");g.async=true;g.crossOrigin="anonymous";
+    g.src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5047047508633424";
+    document.head.appendChild(g);
+  }catch(e){}
+}
+
+/* ═══════════════ ARRANQUE ═══════════════ */
+let bootDone=false;
+function hideBoot(){bootDone=true;el("boot")?.classList.add("hidden");}
+function bootMsg(t){const m=el("boot-msg");if(m)m.textContent=t;}
+
+/* Pide el token con reintentos y timeouts crecientes.
+   Cubre el "despertar" del server gratis de Render (30-50s) y la
+   latencia extra de una VPN, que era lo que dejaba trabado el logo. */
+async function fetchToken(){
+  const tries=[8000,14000,22000];
+  for(let i=0;i<tries.length;i++){
+    if(i>0)bootMsg(i===1?"El servidor está despertando…":"Reintentando conexión…");
+    try{
+      const r=await fx(`${API_BASE}/api/token`,{cache:"no-store"},tries[i]);
+      if(r.ok){const d=await r.json();TOKEN=d.token||"";ANIME_KEY=d.animeKey||"";if(TOKEN)return true;}
+    }catch(e){}
+    await new Promise(res=>setTimeout(res,700));
+  }
+  return false;
+}
+function showConnError(){
+  el("app").innerHTML=`<div class="empty">
+    <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l22 22"/><path d="M16.7 11.1a6 6 0 0 0-3.8-3.8M5 12.9a10 10 0 0 1 3-2M8.5 16.4a6 6 0 0 1 4-1.9M12 20h.01"/></svg>
+    <p><b>No pudimos conectar con el servidor.</b></p>
+    <p style="margin-top:8px">Si tenés una <b>VPN</b> activa, puede estar bloqueando o frenando la conexión: probá desactivarla o cambiar de servidor/país. El servidor también puede tardar unos segundos en despertar.</p>
+    <button class="load-more" style="margin-top:18px" onclick="retryBoot()">Reintentar</button></div>`;
+}
+function retryBoot(){
+  el("app").innerHTML="";
+  el("boot")?.classList.remove("hidden");bootDone=false;
+  bootMsg("Reintentando…");
+  boot();
+}
+async function boot(){
+  updFavBadge();
+  // Failsafe absoluto: pase lo que pase, el logo no se queda trabado.
+  const failsafe=setTimeout(()=>{if(!bootDone){hideBoot();showConnError();}},60000);
+  bootMsg("Conectando…");
+  let ok=false;
+  try{ok=await fetchToken();}catch(e){}
+  clearTimeout(failsafe);
+  hideBoot();
+  if(!ok){showConnError();return;}
+  try{renderHome();}catch(e){}
+  try{openShared();}catch(e){}
+  try{startPresence();}catch(e){}
+  // Ads después del primer render (cuando el navegador está libre).
+  if("requestIdleCallback" in window)requestIdleCallback(injectAds,{timeout:3000});
+  else setTimeout(injectAds,2500);
+}
+boot();
 </script>
 </body>
 </html>
