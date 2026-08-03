@@ -675,6 +675,17 @@ const PLY_SANDBOX="allow-scripts allow-same-origin allow-forms allow-presentatio
 // (solo Safari soporta HLS nativo). Por eso hay que detectarlo y armar un
 // reproductor real (<video> + hls.js) adentro del iframe, en vez de navegar al link.
 function isHLSUrl(u){return /\.m3u8(\?|#|$)/i.test(u||"");}
+// Algunos proveedores mandan cabeceras (X-Frame-Options / CSP frame-ancestors) que
+// bloquean CUALQUIER intento de mostrarlos dentro de un iframe (net::ERR_BLOCKED_BY_RESPONSE).
+// Eso no se puede evitar desde el cliente: si el dominio está en esta lista, ni
+// intentamos iframearlo, mostramos directamente la salida de "abrir en pestaña nueva".
+// Si aparecen más proveedores con el mismo error, se agregan acá.
+const BLOCKED_EMBED_HOSTS=["zilla-networks.com"];
+function isBlockedEmbedHost(u){
+  try{const h=new URL(u,location.href).hostname.toLowerCase();
+    return BLOCKED_EMBED_HOSTS.some(b=>h===b||h.endsWith("."+b));
+  }catch(e){return false;}
+}
 function hlsPlayerDoc(url){
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -709,19 +720,28 @@ function hlsPlayerDoc(url){
 }
 function setFrame(url,useSandbox=true){
   lastUrl=url;lastSandbox=useSandbox;const f=el("ply-frame");
-  if(useSandbox)f.setAttribute("sandbox",PLY_SANDBOX);else f.removeAttribute("sandbox");
-  el("ply-load").classList.remove("hidden");el("ply-ph").classList.add("hidden");
+  el("ply-ph").classList.add("hidden");
   if(isHLSUrl(url)){
-    f.removeAttribute("src");
-    f.onload=null;
+    f.removeAttribute("src");f.onload=null;
     f.srcdoc=hlsPlayerDoc(url);
-    // el <video> interno recién carga bien adentro, avisamos que ya está listo:
+    el("ply-load").classList.remove("hidden");
     setTimeout(()=>el("ply-load")?.classList.add("hidden"),400);
-  }else{
-    f.removeAttribute("srcdoc");
-    f.onload=()=>el("ply-load").classList.add("hidden");
-    f.src=url;
+    return;
   }
+  if(isBlockedEmbedHost(url)){
+    f.removeAttribute("src");f.removeAttribute("srcdoc");f.onload=null;
+    el("ply-load").classList.add("hidden");
+    const ph=el("ply-ph");ph.classList.remove("hidden");
+    ph.innerHTML=`Esta fuente no se puede mostrar integrada en la app (el proveedor la bloquea).
+      <button class="btn-play" onclick="openExtern()">Abrir en pestaña nueva</button>
+      <button class="btn-play" style="margin-top:8px;background:#222" onclick="openSources()">Probar otra fuente</button>`;
+    return;
+  }
+  if(useSandbox)f.setAttribute("sandbox",PLY_SANDBOX);else f.removeAttribute("sandbox");
+  el("ply-load").classList.remove("hidden");
+  f.removeAttribute("srcdoc");
+  f.onload=()=>el("ply-load").classList.add("hidden");
+  f.src=url;
 }
 function reloadFrame(){if(lastUrl)setFrame(lastUrl,lastSandbox);}
 function openExtern(){if(lastUrl)window.open(lastUrl,"_blank","noopener");else toast("Todavía no hay video");}
