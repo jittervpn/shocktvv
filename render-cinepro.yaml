@@ -1,0 +1,27 @@
+# ─────────────────────────────────────────────────────────────
+#  CinePro Core como PRIVATE SERVICE en Render (Blueprint)
+#
+#  Este archivo va en el repo de CinePro (cinepro-org/core), NO en el
+#  de ShockTV. Renómbralo a "render.yaml" en la raíz de ese repo
+#  (el repo ya trae uno; podés reemplazarlo por este).
+#
+#  Un "private service" (type: pserv) NO se expone a internet: solo tus
+#  otros servicios de Render pueden alcanzarlo por su hostname interno.
+#  Eso es justo lo que querés para no exponer CinePro al público.
+# ─────────────────────────────────────────────────────────────
+services:
+  - type: pserv                 # private service (sin URL pública)
+    name: cinepro-core
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: HOST
+        value: 0.0.0.0          # imprescindible en Render, si no, no acepta conexiones
+      - key: PORT
+        value: 10000            # Render inyecta PORT; 10000 es el típico para pserv
+      - key: TMDB_API_KEY
+        sync: false             # la pegás a mano en el panel (tu key de themoviedb.org)
+      - key: CACHE_TYPE
+        value: memory           # o "redis" si agregás un Redis

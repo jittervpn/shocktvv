@@ -1261,6 +1261,60 @@ app.get('/api/presence/stats', (req, res) => {
   res.json({ success: true, data: { online: presence.size, watchingNow, thisTitle } });
 });
 
+// ═══════════════════════════════════════════════
+//  PROXY → CinePro Core (backend OMSS, servicio aparte en Render)
+//  El frontend NO habla con CinePro directo: pega a /api/cinepro/... y
+//  este server reenvía la petición a CinePro por su URL PRIVADA (interna
+//  de Render). Así CinePro no queda expuesto a internet y nadie de afuera
+//  puede quemarte su ancho de banda.
+//
+//  Config por variables de entorno en Render (servicio de ShockTV):
+//    CINEPRO_URL  = http://cinepro-core:10000   (URL interna del private service)
+//                   o https://tu-cinepro.onrender.com si lo dejás público
+//  Endpoints OMSS que expone CinePro:
+//    /v1/movies/{tmdbId}
+//    /v1/tv/{tmdbId}/seasons/{s}/episodes/{e}
+// ═══════════════════════════════════════════════
+const CINEPRO_URL = (process.env.CINEPRO_URL || '').replace(/\/+$/, '');
+
+// Caché en memoria muy simple (los streams caducan; TTL corto).
+const cineproCache = new Map(); // path -> { at, data }
+const CINEPRO_TTL = 5 * 60 * 1000; // 5 min
+
+app.get('/api/cinepro/*', asyncH(async (req, res) => {
+  if (!CINEPRO_URL) {
+    return res.status(503).json({ success: false, message: 'CINEPRO_URL no configurada' });
+  }
+  // Todo lo que venga después de /api/cinepro/ se reenvía tal cual a CinePro,
+  // incluyendo el querystring (?platform=web, filtros, etc.).
+  const sub = req.params[0] || '';
+  const qs  = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+  const target = `${CINEPRO_URL}/v1/${sub}${qs}`;
+  const cacheKey = `${sub}${qs}`;
+
+  const hit = cineproCache.get(cacheKey);
+  if (hit && (Date.now() - hit.at) < CINEPRO_TTL) {
+    return res.json(hit.data);
+  }
+
+  try {
+    const r = await axios.get(target, {
+      timeout: 12000,
+      headers: { accept: 'application/json' },
+      validateStatus: () => true
+    });
+    if (r.status >= 200 && r.status < 300 && r.data) {
+      cineproCache.set(cacheKey, { at: Date.now(), data: r.data });
+      return res.json(r.data);
+    }
+    // CinePro respondió con error o sin fuentes: devolvemos vacío para que el
+    // frontend siga con sus otras fuentes sin romperse.
+    return res.json({ sources: [], subtitles: [], _upstreamStatus: r.status });
+  } catch (e) {
+    return res.json({ sources: [], subtitles: [], _proxyError: true });
+  }
+}));
+
 // Error handler
 app.use((err, req, res, next) => {
   res.status(err.statusCode || 500).json({ success: false, message: err.message || 'Error interno' });

@@ -633,9 +633,10 @@ const API_BASE = (window.__API_BASE__ || "https://shocktvv-1.onrender.com").repl
 
 // CinePro Core (backend OMSS aparte en Render). Devuelve enlaces .m3u8/.mp4
 // DIRECTOS desde ~50 proveedores, que se reproducen con el HLS.js embebido
-// (nada de iframes de terceros ni popups). Cambiá esta URL por la de tu
-// servicio de Render, o definí window.__CINEPRO_BASE__ antes de este script.
-const CINEPRO_BASE = (window.__CINEPRO_BASE__ || "https://TU-CINEPRO.onrender.com").replace(/\/+$/,"");
+// (nada de iframes de terceros ni popups).
+// NO se habla con CinePro directo: se pasa por el PROXY de tu propio backend
+// (API_BASE/api/cinepro/...), así CinePro queda privado y protegido.
+// No hace falta configurar nada acá: usa el mismo API_BASE de siempre.
 const TMDB = "https://api.themoviedb.org/3";
 const IMG = (p,s)=> p ? (p.startsWith("http")?p:`https://image.tmdb.org/t/p/${s}${p}`) : "";
 // hls.js embebido en base64 (sin depender de ningún CDN externo como
@@ -1297,11 +1298,12 @@ function openLiveChat(){
 //   Serie:    GET /v1/tv/{tmdbId}/seasons/{s}/episodes/{e}?platform=web
 // Respuesta: { sources:[ {url, type:"hls"|"mp4", quality, ...} ] }
 async function cineproSources(){
-  if(!PL.id || !CINEPRO_BASE || /TU-CINEPRO/.test(CINEPRO_BASE)) return [];
+  if(!PL.id) return [];
   const s=PL.s||1, e=PL.ep;
+  // Pega al PROXY del backend propio (no a CinePro directo).
   const url = PL.type==="movie"
-    ? `${CINEPRO_BASE}/v1/movies/${PL.id}?platform=web`
-    : `${CINEPRO_BASE}/v1/tv/${PL.id}/seasons/${s}/episodes/${e}?platform=web`;
+    ? `${API_BASE}/api/cinepro/movies/${PL.id}?platform=web`
+    : `${API_BASE}/api/cinepro/tv/${PL.id}/seasons/${s}/episodes/${e}?platform=web`;
   try{
     const r=await fx(url,{headers:{accept:"application/json"}},9000);
     if(!r.ok) return [];
